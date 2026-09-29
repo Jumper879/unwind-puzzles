@@ -12,4 +12,10 @@ export const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<() => Rea
   'word-search': lazy(() =>
     import('./word-search/components/WordSearchPage').then((m) => ({ default: m.WordSearchPage })),
   ),
+  sudoku: lazy(() =>
+    import('./sudoku/components/SudokuPage').then((m) => ({ default: m.SudokuPage })),
+  ),
+  'fruit-match': lazy(() =>
+    import('./fruit-match/components/FruitMatchPage').then((m) => ({ default: m.FruitMatchPage })),
+  ),
 }

@@ -2,7 +2,7 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: Phases 1–3 done.** Phase 3 (X&O + Word Search) is fully playable right now, verified end to end with real drag/click interaction in a browser, not just typechecked — see the Phase 3 report below. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
+**Status: Phases 1–4 done.** All 4 games shipped so far (X&O, Word Search, Sudoku Cards, Fruit Match) are fully playable right now, verified end to end in a real browser, not just typechecked — see the Phase 4 report below. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
 
 ---
 
@@ -118,7 +118,7 @@ RLS is enabled on every table from the first migration, not retrofitted later.
 1. **Setup & shell** — ✅ done. tokens, brand assets (favicon set, `/dev/icons` preview comparing vertical-logo vs mascot-only), splash with animated wordmark, mascot component, hamburger drawer, home screen, platform adapter, PWA setup.
 2. **Backend foundation** — ✅ done (untested against a live project — see the Phase 2 note). Supabase schema/migrations/RLS, guest + Telegram auth, sessions/results/personal-bests, My Records + Global Leaderboard screens, offline sync queue, SECURITY.md.
 3. **Template games** — ✅ done. Tic-Tac-Toe (X&O) and Word Search, fully polished end to end; these become the pattern for the rest.
-4. **Sudoku Cards + Fruit Match.**
+4. **Sudoku Cards + Fruit Match.** — ✅ done.
 5. **Crossword + Chess** (full games vs Stockfish, plus the reference-1-style puzzle mode) — Stockfish package spike happens here.
 6. **Spot the Difference + Mosaic/Missing Piece** — procedural scene generator for Spot the Difference.
 7. **Daily Unwind, streaks, achievements, XP, tutorials, sound, full test pass, Lighthouse audit, docs complete.**
@@ -161,4 +161,17 @@ Pushed to `github.com/Jumper879/unwind-puzzles` (private) and live at https://un
 
 **Not done / scope boundary, not an oversight:** live score sync via the `start_session`/`submit_result` RPCs isn't wired into gameplay — those RPCs need a real `levels` row to reference, and none exist in Supabase yet (seeding `levels` with content matching each game's seed scheme is an ops/content task, not a Phase 3 code task). Relax mode (no timer/star pressure) isn't wired as a toggle yet. Undo isn't implemented for Word Search (less applicable there — nothing to "undo" in a find-the-word game beyond deselecting, which dragging away already does for free).
 
-**Needed from you:** nothing blocking — both games are playable at https://unwind-puzzles.vercel.app/games/tic-tac-toe and /games/word-search right now. Approve to move into Phase 4 (Sudoku Cards + Fruit Match), or flag anything you want changed first.
+**Needed from you:** nothing blocking — both games are playable at https://unwind-puzzles.vercel.app/games/tic-tac-toe and /games/word-search right now.
+
+## 12. Phase 4 report
+
+**Built:** Sudoku Cards (4×4/6×6/9×9, generator + backtracking solver that verifies every puzzle has a **provably unique solution**, not just an assumed one — `generator.test.ts` checks this directly at every size and difficulty via a solution-counter with early exit; card-first tap interaction, notes/pencil mode with auto-clear, live same-digit and conflict highlighting, mistake counter, hints) and Fruit Match (8×8, 6 fruit types, seeded no-initial-match board generation, full match resolution with all three special-piece types from the brief — 4-in-a-line → line clear, L/T shape → bomb, 5+-in-a-line → color clear — cascading combos, no-possible-move detection with reshuffle, score-target-within-move-limit level goals). Both fully tested (34 new engine tests, 73 total across the project) and code-split. Full design writeup in `GAMES.md`.
+
+**Two real bugs caught by testing, not just typechecking:**
+
+1. A React stale-closure bug in Sudoku's hint handler — `finish()` was reading `hintsUsed` from the render closure instead of the value the same handler had just set, so completing a puzzle via hint would undercount by one (same class of bug as `TicTacToePage`'s `finishMatch` fix in Phase 3 — fixed the same way, by passing the current value explicitly instead of trusting the closure).
+2. A test-only bug that looked like a real hang: `npx vitest run` on the Fruit Match suite didn't finish within 120 seconds. Root cause was in my own test helper, not the engine — it filled the board's "background" cells with one uniform fruit value, which made almost the entire 8×8 board one giant accidental match and turned a simple 3-match test into a near-full-board cascade. Fixed the helper to use a provably match-free striped background (`(row+col)%3`) instead, and added a defensive 50-cascade cap to the engine's resolve loop regardless, so a _real_ future bug in that area fails fast with a wrong-but-finite result instead of hanging.
+
+**Scope cuts made deliberately, documented in `GAMES.md` rather than silently skipped:** Sudoku's difficulty is graded by clue count, not by which human solving techniques (naked singles, pointing pairs, etc.) a puzzle requires — a full technique-based grader is a much larger undertaking on its own. Fruit Match's level goal is "score target within a move limit" only — collect-X-fruits and clear-jelly goals from the brief would each need their own board-state layer.
+
+**Needed from you:** nothing blocking — try them at https://unwind-puzzles.vercel.app/games/sudoku and /games/fruit-match. Approve to move into Phase 5 (Crossword + Chess, including the Stockfish package spike flagged back in the original plan), or flag anything you want changed first.

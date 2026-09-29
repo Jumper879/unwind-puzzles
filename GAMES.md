@@ -74,7 +74,67 @@ seed scheme below.
 - **Hint**: reveals (briefly highlights, doesn't auto-solve) one random not-yet-found word's cells
   for 1.6s, and counts toward the hint penalty above — the player still has to drag it themselves.
 
+## Sudoku Cards
+
+`src/games/sudoku/`
+
+- **Sizes**: 4×4 (2×2 boxes), 6×6 (2×3 boxes), 9×9 (3×3 boxes) — `engine/board.ts`'s `boxDims`
+  generalizes row/col/box "peer" logic to all three rather than hardcoding 9×9.
+- **Generator** (`engine/generator.ts`): fills a full valid grid via randomized backtracking (the
+  solver in `engine/solver.ts` with a per-cell shuffled value order), then removes clues one at a
+  time in random order, keeping a removal only if `countSolutions` (backtracking with early exit
+  at 2) still finds exactly one solution — so every generated puzzle is **verified unique**, not
+  just assumed to be (`generator.test.ts` checks this directly at every size × difficulty).
+  Deterministic per `(size, difficulty, seed)`.
+- **Difficulty = clue count**, not solving technique: target clue counts per size/difficulty are a
+  floor the removal loop aims for (removal only proceeds while uniqueness holds, so a puzzle can
+  end up with more clues than the target). Grading by which human techniques (naked singles,
+  pointing pairs, etc.) a puzzle requires is a real, much larger undertaking — deliberately out of
+  scope here, not an oversight.
+- **Interaction**: card-first, per the brief — tap a number card (showing how many of that digit
+  remain unplaced) to select it, then tap a cell to place it; tapping a cell that already holds the
+  selected digit erases it. **Notes mode** toggles pencil marks instead of real placement; placing
+  a real digit auto-clears that digit from every peer's notes. Same-digit cells and rule conflicts
+  (same digit sharing a row/column/box) are highlighted live.
+- **Mistakes/hints**: a wrong placement increments the mistake counter but is left on the board
+  (not reverted) so the player can see and fix it themselves. Hint fills one random empty cell with
+  its correct value. **Scoring** (`engine/scoring.ts`): `100 − 10×mistakes − 8×hints`, floored at
+  40; 3★ = flawless, 2★ = ≤2 mistakes and ≤1 hint, 1★ = any completed solve.
+
+## Fruit Match
+
+`src/games/fruit-match/`
+
+- **Board**: 8×8, 6 fruit types. `engine/board.ts`'s `createBoard` guarantees no match exists at
+  deal time (each new cell avoids whichever fruit type would complete a run of 3 with the two
+  cells already placed to its left/above).
+- **Match resolution** (`engine/resolve.ts`) — the trickiest part of this engine: a swap is applied
+  tentatively, matches (3+ runs, scanned per row and per column via `engine/match.ts`) are found,
+  and if none exist the swap is rejected and the board is untouched. Otherwise: **4-in-a-line**
+  becomes a line-clear special, **5+-in-a-line** becomes a color-clear special (clears every cell of
+  that special's own fruit type when later triggered), and an **L/T shape** — a horizontal and
+  vertical run sharing exactly one cell — becomes a bomb (clears a 3×3 area when triggered). New
+  specials are placed at the swap's landing cell when possible, not cleared with the rest of their
+  group. Any _existing_ special piece caught in a clear expands the clear to its effect area
+  (breadth-first, so one special triggering another chains correctly), then gravity refills empty
+  columns and the whole process repeats for cascades — each successive cascade scores at a higher
+  combo multiplier. A hard 50-cascade cap guards against a future logic bug turning into a hang
+  rather than a wrong-but-finite result (caught one during development: an early test-board helper
+  that accidentally filled most of the board with one uniform "background" value created a
+  near-board-spanning match and a very slow resolve — fixed in the test helper, not the engine, but
+  the cap stays as defense-in-depth).
+- **No-moves detection**: after every settle, `hasAnyPossibleMove` checks all adjacent pairs for a
+  swap that would match anything; if none exists, `createPlayableBoard` reshuffles (regenerates a
+  fresh match-free board, retrying until at least one legal move exists too).
+- **Level goal**: reach a score target within a move limit — the simplest of the three goal types
+  in the brief. Collect-X-fruits and clear-jelly goals would need their own board-state layers on
+  top of this engine; noted as a real scope cut in `engine/scoring.ts`'s comment, not implemented.
+  10 procedurally-generated levels per difficulty, real unlock progression, same pattern as Word
+  Search.
+- **Visuals**: soft-3D "clay" fruit icons (radial gradient + inset highlight + drop shadow, same
+  material language as the home screen's game icons) rather than illustrated fruit art — a
+  placeholder swap-in point for real artwork later, same as the other games' icon placeholders.
+
 ## Not yet built
 
-Sudoku Cards, Fruit Match, Crossword, Chess, Spot the Difference, Missing Piece — Phases 4–6 per
-`PLAN.md`.
+Crossword, Chess, Spot the Difference, Missing Piece — Phases 5–6 per `PLAN.md`.
