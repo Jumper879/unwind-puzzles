@@ -2,7 +2,7 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: Phases 1–5 done.** All 6 games shipped so far are fully playable right now, verified end to end in a real browser, not just typechecked — see the Phase 5 report below, including the Stockfish package spike (resolved) and the mascot/icon branding switch. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
+**Status: Phases 1–6 done.** All 8 games are now shipped and playable, verified end to end in a real browser, not just typechecked — see the Phase 6 report below for Spot the Difference and Missing Piece (the last two games), plus the Phase 5 report for the Stockfish package spike and the mascot/icon branding switch. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
 
 ---
 
@@ -120,7 +120,8 @@ RLS is enabled on every table from the first migration, not retrofitted later.
 3. **Template games** — ✅ done. Tic-Tac-Toe (X&O) and Word Search, fully polished end to end; these become the pattern for the rest.
 4. **Sudoku Cards + Fruit Match.** — ✅ done.
 5. **Crossword + Chess** — ✅ done. Full games vs Stockfish, plus the reference-1-style puzzle mode; Stockfish package spike resolved (see the Phase 5 report).
-6. **Spot the Difference + Mosaic/Missing Piece** — procedural scene generator for Spot the Difference.
+6. **Spot the Difference + Mosaic/Missing Piece** — ✅ done. Both fully procedural (no licensed
+   art), see the Phase 6 report below.
 7. **Daily Unwind, streaks, achievements, XP, tutorials, sound, full test pass, Lighthouse audit, docs complete.**
 
 After each phase: run the app, test at 360×780 and desktop, fix issues, update the relevant doc file, short summary of done/next/needed-from-you.
@@ -216,3 +217,61 @@ needs real search, not just single-move checkmate detection).
 **Needed from you:** nothing blocking — try Crossword and Chess at
 https://unwind-puzzles.vercel.app/games/crossword and /games/chess. Approve to move into Phase 6
 (Spot the Difference + Missing Piece/Mosaic), or flag anything you want changed first.
+
+---
+
+## 14. Phase 6 report
+
+**Built:** Spot the Difference (procedural scene generator, tap-to-find, hint) and Missing Piece
+(procedural mosaic-tile generator, 3×3–5×5 grid, multiple-choice with verified-distinct decoys) —
+all 8 games from the brief are now shipped. Both new games are fully procedural: no external or
+licensed art, same policy already used for Fruit Match's fruit icons and Chess's original puzzle
+positions, and it directly resolves the open question from Phase 1 about needing a licensed source
+for Mosaic's illustrations. 19 new engine tests (9 Spot the Difference, 10 Missing Piece), 114
+total across the project.
+
+**A real geometry bug caught by testing, not by eyeballing**: Spot the Difference's first object
+size range (`0.08–0.15` of canvas width) was mathematically too large to pack medium/hard's 14–18
+objects at the required minimum spacing — a genuine "doesn't fit" impossibility, not a
+retry-budget shortfall. `generator.test.ts` asserting the exact target object count caught it;
+fixed by shrinking the size range and gap, then re-verified.
+
+**A real test-tooling bug, isolated and confirmed before concluding anything**: an early Playwright
+verification script for Spot the Difference reported "0/4 found" tapping the exact known hotspot
+coordinates, which looked like a broken tap handler. Root-caused by isolating a single tap and
+watching it register correctly — the script's `page.locator('svg[aria-label]').first()` was
+matching the Mascot component's own `aria-label`'d SVG (which renders above the two scene canvases)
+instead of Scene A, so every computed tap coordinate landed off both scenes entirely. Fixed by
+scoping the locator to `svg[aria-label="Scene A"]`; the re-run then found all 4 differences with
+zero wrong taps and produced a correct 3-star result. The app's tap-detection logic was correct the
+whole time — this was purely a test-script locator bug, confirmed rather than assumed per the
+project's established pattern of ruling out tooling issues before calling something an app bug.
+
+**Missing Piece's decoy design**: rather than generating decoys via rotation/mirror transforms
+(which risks a shape like a circle or a symmetric stripe looking *identical* after a 90°/180°
+rotation despite different underlying data — a real correctness trap), each shape has its own
+fixed, hand-authored list of variants with genuinely different geometry, so "different variant"
+always means "visually different render" by construction. Every choice is additionally checked
+against a running `Set` of signatures before being accepted, guaranteeing all 4 choices are
+distinct — verified across 50 seeds × 3 difficulties in `generator.test.ts`, not assumed. With only
+3 possible decoys, the game also can't have a true losing state: worst case, 3 wrong picks
+eliminate every decoy and the correct tile is the only one left enabled.
+
+**Scope cuts, documented not hidden**: Missing Piece ships 3×3/4×4/5×5 (easy/medium/hard) rather
+than the brief's 3×3–6×6 range — same "document the cut" pattern as Crossword's single template;
+later drag-to-place-and-rotate interaction and multi-missing-piece levels from the original brief
+aren't built. Spot the Difference ships single-object changes only (no combined move+recolor on
+one object).
+
+**A pre-existing test-suite flakiness noted, not introduced here**: running the full suite with
+default parallelism intermittently times out one or two of the heaviest pre-existing tests (the
+tic-tac-toe hard-AI minimax search, the Sudoku generator's clue-count comparison) under worker CPU
+contention — both pass cleanly every time when run in isolation or with `--no-file-parallelism`.
+Not a Phase 6 regression; flagged here since it showed up while running the full suite for this
+report.
+
+**Needed from you:** nothing blocking — try Spot the Difference and Missing Piece at
+https://unwind-puzzles.vercel.app/games/spot-the-difference and /games/mosaic once this deploys.
+Phase 7 (Daily Unwind, streaks, achievements, XP, tutorials, sound, full test pass, Lighthouse
+audit, docs complete) is the only phase left — say the word to start it, or flag anything you want
+changed first.

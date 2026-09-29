@@ -22,4 +22,12 @@ export const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<() => Rea
     import('./crossword/components/CrosswordPage').then((m) => ({ default: m.CrosswordPage })),
   ),
   chess: lazy(() => import('./chess/components/ChessPage').then((m) => ({ default: m.ChessPage }))),
+  'spot-the-difference': lazy(() =>
+    import('./spot-the-difference/components/SpotTheDifferencePage').then((m) => ({
+      default: m.SpotTheDifferencePage,
+    })),
+  ),
+  mosaic: lazy(() =>
+    import('./mosaic/components/MissingPiecePage').then((m) => ({ default: m.MissingPiecePage })),
+  ),
 }

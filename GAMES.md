@@ -207,6 +207,59 @@ Worker('/stockfish/stockfish-19-lite-single.js')` speaks UCI directly over plain
   (winning on Hard outscores winning on Easy); puzzles score `100 − 20×hintsUsed` (capture
   puzzles: extra moves beyond the BFS-computed minimum count the same as a hint).
 
-## Not yet built
+## Spot the Difference
 
-Spot the Difference, Missing Piece — Phase 6 per `PLAN.md`.
+`src/games/spot-the-difference/`
+
+- **Content**: fully procedural — no external/licensed art, same policy as Fruit Match's clay fruit
+  icons and Chess's original puzzle positions. `engine/generator.ts` scatters flat-SVG scene
+  objects (hill/rock/bush/tree/flower/butterfly/cloud/sun, brand-palette colors) via
+  rejection-sampling circle-packing onto a normalized (0–1) canvas, so hotspots stay
+  resolution-independent. Deterministic per `(difficulty, seed)`.
+- **Difficulty → object/change count** (`DIFFICULTY_CONFIG`): easy = 10 objects / 4 differences / 5
+  wrong-tap allowance; medium = 14 / 6 / 4; hard = 18 / 8 / 3.
+- **A real geometry bug caught and fixed during development**: the original object size range
+  (`0.08–0.15` of canvas width) was mathematically too large to pack 14–18 objects at the required
+  minimum spacing — not an attempt-budget problem, a genuine "doesn't fit" impossibility. Shrunk to
+  `0.045–0.08` with a smaller min-gap and a higher attempt budget; `generator.test.ts` verifies
+  every difficulty actually reaches its target object count rather than silently placing fewer.
+- **Differences**: `applyChange` clones scene A into scene B and mutates exactly `changeCount`
+  distinct objects, one of `removed | moved | resized | recolored | flipped` each — tests verify
+  every declared difference actually differs, no object is changed twice, and every *unchanged*
+  object is pixel-identical between the two scenes (i.e. no accidental extra differences).
+- **Interaction**: tap either scene; a tap within `radius × 1.15` of an unfound difference's
+  hotspot counts as a find (dashed ring marker appears on scene A); anything else counts as a wrong
+  tap (brief red marker) against the difficulty's wrong-tap allowance. Hint highlights one
+  unfound hotspot for 1.6s without counting as a find.
+- **Scoring** (`engine/scoring.ts`): based on found/total, wrong taps, and hints used, same shape as
+  Word Search's.
+
+## Missing Piece
+
+`src/games/mosaic/` (registry id `mosaic`, page component `MissingPiecePage`)
+
+- **Content**: also fully procedural, for the same reason as above — `PLAN.md`'s open questions
+  flagged "Mosaic illustrations need a licensed source or original art" back at Phase 1; this ships
+  generative geometric tiles instead of illustration, sidestepping that question entirely rather
+  than leaving it unresolved.
+- **Tile design** (`engine/types.ts`): 5 shape types (wedge, triangle, halfCircle, diamond, dot),
+  each with its own fixed, hand-authored list of variants (e.g. `wedge` has one render per corner:
+  `tl/tr/br/bl`). Variants of the same shape are drawn with genuinely different geometry, so
+  "different variant" **always** means "visually different render" — no rotation/mirror math is
+  needed to prove two tiles look different, sidestepping a real correctness trap (e.g. a circle or
+  a symmetric stripe can look identical after a 90°/180° rotation even though the underlying data
+  changed; the variant-list design never has that ambiguity).
+- **Grid → difficulty** (`engine/generator.ts`): easy = 3×3, medium = 4×4, hard = 5×5 (6×6 from the
+  original brief deferred — same "document the cut" pattern as Crossword's single template).
+- **Multiple choice**: 1 correct tile + 3 decoys, built by `buildDecoys` trying, in order: a
+  different variant of the same shape, the same shape recolored, a real neighboring cell's actual
+  tile, then a fully random reshape as fallback. Every candidate is checked against a `Set` of
+  already-used signatures (`shapeType:variant:bgColor:shapeColor`) before being accepted, so all 4
+  choices are **guaranteed** signature-distinct — verified, not assumed, by
+  `generator.test.ts` across 50 seeds × all 3 difficulties.
+- **No losing state, by design**: with only 3 possible decoys, the worst case is 3 wrong picks
+  eliminating every decoy, leaving the correct tile as the only enabled option — the player always
+  reaches the solve. The difficulty's `attemptLimit` (5/4/3) only affects score/star grading, never
+  blocks play.
+- **Scoring** (`engine/scoring.ts`): `100 − 15×(attempts−1) − 20×hints`, floored at 10; 3★ = solved
+  first try with no hint, 2★ = ≤2 attempts and ≤1 hint, 1★ = solved at all.
