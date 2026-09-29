@@ -2,29 +2,14 @@ import { Link } from 'react-router-dom'
 import { TopBar } from '../components/TopBar'
 import { Card } from '../components/Card'
 import { GameIcon } from '../components/GameIcon'
-import { Mascot } from '../mascot/Mascot'
+import { BrandMark } from '../components/BrandMark'
 import { GAMES } from '../games/registry'
 import { GAME_COMPONENTS } from '../games/gameComponents'
-
-// The horizontal/vertical brand lockups are pre-composed on an opaque navy
-// canvas (by design — they're meant for navy surfaces like the drawer and
-// splash), so on this light header we use the mascot + real text instead
-// of stamping a navy rectangle onto the paper background.
-function HomeBrandMark() {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <Mascot size={26} />
-      <span className="font-[var(--font-heading)] text-sm font-extrabold text-[var(--color-text-primary)]">
-        Unwind Puzzles
-      </span>
-    </span>
-  )
-}
 
 export function Home() {
   return (
     <div className="flex flex-1 flex-col pb-10">
-      <TopBar center={<HomeBrandMark />} />
+      <TopBar center={<BrandMark />} />
 
       <div className="mx-auto w-full max-w-md flex-1 px-4 pt-6">
         <Link to="/daily" className="block">

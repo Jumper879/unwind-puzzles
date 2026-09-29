@@ -127,11 +127,13 @@ mascot_master.resize((256, 256), Image.LANCZOS).save(
     sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
 )
 
-# Default production app icon set: vertical logo, per the brief's instruction.
-vertical_master.resize((180, 180), Image.LANCZOS).save(os.path.join(OUT, "apple-touch-icon.png"))
-save_sizes(vertical_master, [192, 512], "icon-{}.png", OUT)
-maskable_from(vertical_master, 192).save(os.path.join(OUT, "icon-192-maskable.png"))
-maskable_from(vertical_master, 512).save(os.path.join(OUT, "icon-512-maskable.png"))
+# Default production app icon set: mascot-only, per the user's decision
+# after comparing both at /dev/icons (the vertical logo's text turns to
+# mush at small sizes; the mascot alone reads clearly and boldly).
+mascot_master.resize((180, 180), Image.LANCZOS).save(os.path.join(OUT, "apple-touch-icon.png"))
+save_sizes(mascot_master, [192, 512], "icon-{}.png", OUT)
+maskable_from(mascot_master, 192).save(os.path.join(OUT, "icon-192-maskable.png"))
+maskable_from(mascot_master, 512).save(os.path.join(OUT, "icon-512-maskable.png"))
 
 # Comparison variants for /dev/icons (both at 48 / 96 / 180).
 for s in [48, 96, 180]:

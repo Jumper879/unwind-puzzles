@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { NavLink } from 'react-router-dom'
 import { useUiStore } from '../state/useUiStore'
 import { GAMES } from '../games/registry'
-import { BrandLogo } from './BrandLogo'
+import { BrandMark } from './BrandMark'
 
 const NAV_LINK_CLASS =
   'block rounded-2xl px-4 py-2.5 text-white/85 transition-colors hover:bg-white/10 hover:text-white'
@@ -34,7 +34,7 @@ export function Drawer() {
             transition={{ type: 'spring', stiffness: 320, damping: 34 }}
           >
             <div className="flex items-center justify-between">
-              <BrandLogo variant="horizontal" className="h-10 w-auto object-contain" />
+              <BrandMark size={30} textClassName="text-white" />
               <button
                 type="button"
                 onClick={close}

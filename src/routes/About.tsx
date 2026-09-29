@@ -1,5 +1,5 @@
 import { TopBar } from '../components/TopBar'
-import { BrandLogo } from '../components/BrandLogo'
+import { Mascot } from '../mascot/Mascot'
 
 export function About() {
   return (
@@ -7,10 +7,11 @@ export function About() {
       <TopBar center={<span className="font-[var(--font-heading)] font-extrabold">About</span>} />
 
       <div className="mx-auto w-full max-w-md flex-1 px-6 pt-8 text-[var(--color-text-secondary)]">
-        {/* The vertical lockup is pre-composed on an opaque navy canvas, so it
-            gets a matching navy card rather than floating on this white page. */}
-        <div className="mx-auto mb-6 w-fit rounded-[28px] bg-[var(--navy-900)] p-6">
-          <BrandLogo variant="vertical" className="h-28 w-auto object-contain" />
+        <div className="mx-auto mb-6 flex w-fit flex-col items-center gap-2 rounded-[28px] bg-[var(--navy-900)] p-6">
+          <Mascot size={96} />
+          <p className="font-[var(--font-heading)] text-lg font-extrabold text-white">
+            Unwind Puzzles
+          </p>
         </div>
         <p className="mb-4">
           Unwind Puzzles is a calm, single-player puzzle collection — built to be played in short
