@@ -4,6 +4,7 @@ import { Card } from '../components/Card'
 import { GameIcon } from '../components/GameIcon'
 import { Mascot } from '../mascot/Mascot'
 import { GAMES } from '../games/registry'
+import { GAME_COMPONENTS } from '../games/gameComponents'
 
 // The horizontal/vertical brand lockups are pre-composed on an opaque navy
 // canvas (by design — they're meant for navy surfaces like the drawer and
@@ -66,9 +67,15 @@ export function Home() {
                   </p>
                   <p className="text-xs text-[var(--color-text-secondary)]">{game.tagline}</p>
                 </div>
-                <span className="mt-auto self-start rounded-full bg-[var(--color-accent-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-accent-strong)]">
-                  Phase {game.phase}
-                </span>
+                {GAME_COMPONENTS[game.id] ? (
+                  <span className="mt-auto self-start rounded-full bg-[var(--mint-200)] px-2.5 py-1 text-[11px] font-bold text-[var(--mint-700)]">
+                    Play now
+                  </span>
+                ) : (
+                  <span className="mt-auto self-start rounded-full bg-[var(--color-accent-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-accent-strong)]">
+                    Phase {game.phase}
+                  </span>
+                )}
               </Card>
             </Link>
           ))}

@@ -2,7 +2,7 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: Phase 1 and Phase 2 (backend foundation) both done.** Full DB schema/RLS/RPCs/leaderboard functions, both auth paths, My Records + Global Leaderboard screens, the offline sync queue, and SECURITY.md are all written and wired client-side — verified with real (honest, "not connected yet") empty states in a browser. None of it has run against a _live_ Supabase project yet (none exists) — see the Phase 2 note below the phase list for what that needs from you. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
+**Status: Phases 1–3 done.** Phase 3 (X&O + Word Search) is fully playable right now, verified end to end with real drag/click interaction in a browser, not just typechecked — see the Phase 3 report below. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
 
 ---
 
@@ -117,7 +117,7 @@ RLS is enabled on every table from the first migration, not retrofitted later.
 
 1. **Setup & shell** — ✅ done. tokens, brand assets (favicon set, `/dev/icons` preview comparing vertical-logo vs mascot-only), splash with animated wordmark, mascot component, hamburger drawer, home screen, platform adapter, PWA setup.
 2. **Backend foundation** — ✅ done (untested against a live project — see the Phase 2 note). Supabase schema/migrations/RLS, guest + Telegram auth, sessions/results/personal-bests, My Records + Global Leaderboard screens, offline sync queue, SECURITY.md.
-3. **Template games** — Tic-Tac-Toe (X&O) and Word Search, fully polished end to end; these become the pattern for the rest.
+3. **Template games** — ✅ done. Tic-Tac-Toe (X&O) and Word Search, fully polished end to end; these become the pattern for the rest.
 4. **Sudoku Cards + Fruit Match.**
 5. **Crossword + Chess** (full games vs Stockfish, plus the reference-1-style puzzle mode) — Stockfish package spike happens here.
 6. **Spot the Difference + Mosaic/Missing Piece** — procedural scene generator for Spot the Difference.
@@ -151,4 +151,14 @@ After each phase: run the app, test at 360×780 and desktop, fix issues, update 
 
 **Needed from you:** a Supabase project (URL + anon key, into `.env.local` — copy `.env.example`, and also into Vercel's Environment Variables for the deployed build) to wire this up live, or say the word and I'll walk you through creating one. Same for a Telegram bot token via BotFather if/when you want the Telegram path testable.
 
-Pushed to `github.com/Jumper879/unwind-puzzles` (private) and live at https://unwind-puzzles.vercel.app/. Approve to move into Phase 3 (Tic-Tac-Toe + Word Search, fully polished end to end — the template the rest of the games follow), or flag anything you want changed first.
+Pushed to `github.com/Jumper879/unwind-puzzles` (private) and live at https://unwind-puzzles.vercel.app/.
+
+## 11. Phase 3 report
+
+**Built:** full engines for both games (`src/games/tic-tac-toe/engine`, `src/games/word-search/engine`) — pure TS, unit-tested, no React. Tic-Tac-Toe: minimax with alpha-beta, classic 3×3 provably unbeatable on Hard (verified by a test that plays two Hard instances against each other and asserts every game draws), a depth-capped+heuristic version for the 4×4 connect4 variant, undo, hints that always suggest the objectively best move. Word Search: seeded deterministic generator (8-direction placement per difficulty, overlap only on matching letters, graceful word-skip if placement fails, and a filler-collision fix that scans for and breaks accidental word occurrences in the random fill — all with regression tests), drag-to-select that snaps an imprecise drag to the nearest of 8 straight-line directions, 6 starter themes, 10 procedurally-generated levels per theme/difficulty with real unlock progression. Both wired into the game registry with code-split lazy-loaded components (confirmed in the production build: separate ~9KB/~12KB chunks, not bundled into the main app). Both games are fully playable **right now** with zero backend — scores/progress/stars save to `localStorage` — since Supabase's `levels` table has no rows yet (see below), and "offline play for everything" shouldn't wait on that. Full rules/scoring writeup in `GAMES.md`.
+
+**Verified live, not just typechecked**: played a full Tic-Tac-Toe match end to end via simulated clicks (correct win/draw detection, scoring, star rating, "new personal best" badge all fired correctly) and a real word-search drag-select (computed the exact deterministic level-1 layout, dragged across the true word location, confirmed it registered as found, confirmed early-finish scoring). One real bug caught this way: the Word Search Hint button initially just incremented a counter with no visible effect — dead UI — fixed to actually reveal the hinted word's cells for 1.6s before I called it done.
+
+**Not done / scope boundary, not an oversight:** live score sync via the `start_session`/`submit_result` RPCs isn't wired into gameplay — those RPCs need a real `levels` row to reference, and none exist in Supabase yet (seeding `levels` with content matching each game's seed scheme is an ops/content task, not a Phase 3 code task). Relax mode (no timer/star pressure) isn't wired as a toggle yet. Undo isn't implemented for Word Search (less applicable there — nothing to "undo" in a find-the-word game beyond deselecting, which dragging away already does for free).
+
+**Needed from you:** nothing blocking — both games are playable at https://unwind-puzzles.vercel.app/games/tic-tac-toe and /games/word-search right now. Approve to move into Phase 4 (Sudoku Cards + Fruit Match), or flag anything you want changed first.
