@@ -1,0 +1,140 @@
+/*
+  Design tokens for Unwind Puzzles.
+  Navy/blue scales are generated from colors sampled directly out of the
+  brand PNGs (navy-900 = #04073A, blue-500 = #1F61FA) — see PLAN.md.
+  Everything downstream (Tailwind, components) reads these CSS variables,
+  never a hardcoded hex, so theme switching is a variable swap, not a
+  rebuild.
+*/
+
+:root {
+  /* Navy scale */
+  --navy-50: #e8e9fd;
+  --navy-100: #d5d7fc;
+  --navy-200: #afb3f9;
+  --navy-300: #7f86f6;
+  --navy-400: #464ff2;
+  --navy-500: #101ceb;
+  --navy-600: #0d17bb;
+  --navy-700: #0a118b;
+  --navy-800: #060b5b;
+  --navy-900: #04073a;
+  --navy-950: #020422;
+
+  /* Electric blue scale */
+  --blue-50: #f0f4ff;
+  --blue-100: #e4ebff;
+  --blue-200: #c9d9fe;
+  --blue-300: #97b5fd;
+  --blue-400: #5b8bfb;
+  --blue-500: #1f61fa;
+  --blue-600: #0547e1;
+  --blue-700: #0437af;
+  --blue-800: #03287d;
+  --blue-900: #021d5a;
+  --blue-950: #011541;
+
+  /* Calm support accents (for game pieces/badges, never full backgrounds) */
+  --sky-100: #e2f1f8;
+  --sky-200: #c5e3f1;
+  --sky-400: #7bbee0;
+  --sky-500: #5aaed8;
+  --sky-600: #309acf;
+  --sky-700: #277ba5;
+
+  --mint-100: #e5f5f0;
+  --mint-200: #cbebe1;
+  --mint-400: #89d2ba;
+  --mint-500: #6bc7a8;
+  --mint-600: #46b993;
+  --mint-700: #389475;
+
+  --peach-100: #fbece0;
+  --peach-200: #f6dac1;
+  --peach-400: #eba970;
+  --peach-500: #e6944c;
+  --peach-600: #df7920;
+  --peach-700: #b36119;
+
+  --lavender-100: #ece5f5;
+  --lavender-200: #d9cbeb;
+  --lavender-400: #a789d2;
+  --lavender-500: #916bc7;
+  --lavender-600: #7646b9;
+  --lavender-700: #5e3894;
+
+  --butter-100: #fbf5df;
+  --butter-200: #f8ebbf;
+  --butter-400: #efd06c;
+  --butter-500: #ebc547;
+  --butter-600: #e6b619;
+  --butter-700: #b89214;
+
+  --coral-100: #fae4e1;
+  --coral-200: #f4c9c2;
+  --coral-400: #e78474;
+  --coral-500: #e06552;
+  --coral-600: #d93e26;
+  --coral-700: #ad321f;
+
+  /* Fonts (self-hosted via @fontsource, see index.css) */
+  --font-heading: 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
+  /* Semantic tokens: light theme (default) */
+  --color-bg: #f7f7fb;
+  --color-bg-grid-line: rgb(4 7 58 / 4%);
+  --color-surface: #ffffff;
+  --color-surface-outline: rgb(4 7 58 / 12%);
+  --color-text-primary: var(--navy-900);
+  --color-text-secondary: rgb(4 7 58 / 62%);
+  --color-text-inverse: #ffffff;
+  --color-accent: var(--blue-500);
+  --color-accent-strong: var(--blue-600);
+  --color-accent-soft: var(--blue-100);
+  --color-success: var(--mint-600);
+  --color-danger: var(--coral-600);
+  --color-shadow: rgb(4 7 58 / 14%);
+
+  /* Chrome surfaces that are always navy regardless of theme (splash, drawer, Telegram header) */
+  --color-chrome-bg: var(--navy-900);
+  --color-chrome-text: #ffffff;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --color-bg: var(--navy-950);
+  --color-bg-grid-line: rgb(255 255 255 / 5%);
+  --color-surface: var(--navy-800);
+  --color-surface-outline: rgb(255 255 255 / 12%);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: rgb(255 255 255 / 66%);
+  --color-text-inverse: var(--navy-900);
+  --color-accent: var(--blue-400);
+  --color-accent-strong: var(--blue-300);
+  --color-accent-soft: rgb(31 97 250 / 18%);
+  --color-shadow: rgb(0 0 0 / 40%);
+  --color-chrome-bg: var(--navy-950);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg: var(--navy-950);
+    --color-bg-grid-line: rgb(255 255 255 / 5%);
+    --color-surface: var(--navy-800);
+    --color-surface-outline: rgb(255 255 255 / 12%);
+    --color-text-primary: #ffffff;
+    --color-text-secondary: rgb(255 255 255 / 66%);
+    --color-text-inverse: var(--navy-900);
+    --color-accent: var(--blue-400);
+    --color-accent-strong: var(--blue-300);
+    --color-accent-soft: rgb(31 97 250 / 18%);
+    --color-shadow: rgb(0 0 0 / 40%);
+    --color-chrome-bg: var(--navy-950);
+
+    color-scheme: dark;
+  }
+}
