@@ -7,7 +7,11 @@ import prettierConfig from 'eslint-config-prettier'
 export default tseslint.config(
   // Deno runtime, not part of the Vite/React TS project — linted (if at
   // all) by `deno lint` in its own environment, not this app's ruleset.
-  { ignores: ['dist', 'dev-dist', 'node_modules', 'supabase/functions/**'] },
+  // public/stockfish: a third-party prebuilt engine copied in verbatim
+  // (see scripts note in GAMES.md/DEPLOYMENT) — not our code to lint.
+  {
+    ignores: ['dist', 'dev-dist', 'node_modules', 'supabase/functions/**', 'public/stockfish/**'],
+  },
   js.configs.recommended,
   ...tseslint.configs.strict,
   ...tseslint.configs.stylistic,

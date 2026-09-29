@@ -41,7 +41,11 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,png,webp,svg,ico}'],
-        globIgnores: ['icons/variants/**'],
+        // icons/variants: /dev-only comparison assets, never needed by players.
+        // stockfish: 1.8MB engine only chess players ever touch — loaded on
+        // demand via the browser's normal HTTP cache instead of bloating
+        // every installer's initial precache for a feature they may not use.
+        globIgnores: ['icons/variants/**', 'stockfish/**'],
         navigateFallbackDenylist: [/^\/dev\//],
       },
       devOptions: {

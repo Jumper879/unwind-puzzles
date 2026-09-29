@@ -21,4 +21,5 @@ export const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<() => Rea
   crossword: lazy(() =>
     import('./crossword/components/CrosswordPage').then((m) => ({ default: m.CrosswordPage })),
   ),
+  chess: lazy(() => import('./chess/components/ChessPage').then((m) => ({ default: m.ChessPage }))),
 }

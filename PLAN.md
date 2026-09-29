@@ -2,7 +2,7 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: Phases 1–4 done.** All 4 games shipped so far (X&O, Word Search, Sudoku Cards, Fruit Match) are fully playable right now, verified end to end in a real browser, not just typechecked — see the Phase 4 report below. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
+**Status: Phases 1–5 done.** All 6 games shipped so far are fully playable right now, verified end to end in a real browser, not just typechecked — see the Phase 5 report below, including the Stockfish package spike (resolved) and the mascot/icon branding switch. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
 
 ---
 
@@ -119,7 +119,7 @@ RLS is enabled on every table from the first migration, not retrofitted later.
 2. **Backend foundation** — ✅ done (untested against a live project — see the Phase 2 note). Supabase schema/migrations/RLS, guest + Telegram auth, sessions/results/personal-bests, My Records + Global Leaderboard screens, offline sync queue, SECURITY.md.
 3. **Template games** — ✅ done. Tic-Tac-Toe (X&O) and Word Search, fully polished end to end; these become the pattern for the rest.
 4. **Sudoku Cards + Fruit Match.** — ✅ done.
-5. **Crossword + Chess** (full games vs Stockfish, plus the reference-1-style puzzle mode) — Stockfish package spike happens here.
+5. **Crossword + Chess** — ✅ done. Full games vs Stockfish, plus the reference-1-style puzzle mode; Stockfish package spike resolved (see the Phase 5 report).
 6. **Spot the Difference + Mosaic/Missing Piece** — procedural scene generator for Spot the Difference.
 7. **Daily Unwind, streaks, achievements, XP, tutorials, sound, full test pass, Lighthouse audit, docs complete.**
 
@@ -174,4 +174,45 @@ Pushed to `github.com/Jumper879/unwind-puzzles` (private) and live at https://un
 
 **Scope cuts made deliberately, documented in `GAMES.md` rather than silently skipped:** Sudoku's difficulty is graded by clue count, not by which human solving techniques (naked singles, pointing pairs, etc.) a puzzle requires — a full technique-based grader is a much larger undertaking on its own. Fruit Match's level goal is "score target within a move limit" only — collect-X-fruits and clear-jelly goals from the brief would each need their own board-state layer.
 
-**Needed from you:** nothing blocking — try them at https://unwind-puzzles.vercel.app/games/sudoku and /games/fruit-match. Approve to move into Phase 5 (Crossword + Chess, including the Stockfish package spike flagged back in the original plan), or flag anything you want changed first.
+**Needed from you:** nothing blocking — try them at https://unwind-puzzles.vercel.app/games/sudoku and /games/fruit-match.
+
+## 13. Phase 5 report
+
+**Built:** Crossword (original word/clue list, backtracking grid-fill generator, custom on-screen
+keyboard) and Chess (chess.js + Stockfish full game, plus capture and mate-in-1 puzzle modes) —
+both fully playable, verified live in a browser including a real move-by-move game against the
+actual Stockfish engine running in a Web Worker. 24 new tests, 95 total across the project.
+
+**The Stockfish spike, resolved**: `stockfish` (nmrugg), lite single-threaded build. The full NNUE
+build turned out to be **~99MB** (found by actually inspecting the installed package — the docs
+undersold this), so lite-single (~1.8MB) was the only realistic choice anyway, confirming the
+Phase 2 recommendation. Verified live in a real Worker — direct `postMessage`/`onmessage` with raw
+UCI strings, no wrapper needed — before building anything on top of it.
+
+**Also done this phase** (a mid-session request, not originally scoped to Phase 5): switched the
+production app icon from the vertical logo to the mascot alone (`icon.png`), per your side-by-side
+comparison at `/dev/icons` — the vertical logo's text was illegible at small sizes. In-app "logo"
+spots (drawer, About) switched to the same mascot + real text for consistency; the unused
+raster-logo component and files were removed (PWA precache dropped another ~330KB).
+
+**Three real bugs caught by testing, not by inspection:**
+
+1. Two of my own hand-designed crossword grid templates (a 7×7 needing five 7-letter words against
+   a word list with only one; a 5×5 with four mutually-intersecting 5-letter slots) simply
+   couldn't be filled — caught by a test that actually tries to fill them, not by counting
+   constraints on paper. Shipped with the one template that's actually verified to work.
+2. A hand-designed "mate-in-1" chess puzzle wasn't actually checkmate — the king had an escape
+   square I missed by eye. Caught by a test that applies the claimed move with chess.js and checks
+   `isCheckmate()`, before it ever shipped.
+3. A `react-hooks` purity-lint error in the chess full-game page (`Date.now()` inside a function
+   reachable from an async call path) — fixed by wrapping `finish` in `useCallback`, matching the
+   pattern already used in `TicTacToePage`.
+
+**Scope cuts, documented not hidden**: crossword ships with one grid template and no difficulty
+selector (one that didn't change anything would be a fake control); chess auto-queens on promotion
+(no promotion-choice UI yet); chess puzzles stop at mate-in-1 (verifying a forced multi-move line
+needs real search, not just single-move checkmate detection).
+
+**Needed from you:** nothing blocking — try Crossword and Chess at
+https://unwind-puzzles.vercel.app/games/crossword and /games/chess. Approve to move into Phase 6
+(Spot the Difference + Missing Piece/Mosaic), or flag anything you want changed first.

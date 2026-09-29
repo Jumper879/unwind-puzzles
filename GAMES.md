@@ -164,6 +164,49 @@ seed scheme below.
   (`engine/scoring.ts`): `round(100 × correctCells/totalCells) − 5×reveals`; 3★ = complete with 0
   reveals, 2★ = complete with ≤2 reveals, 1★ = complete at all.
 
+## Chess
+
+`src/games/chess/`
+
+- **Rules engine**: chess.js v1.x (a hard breaking rewrite from 0.x — throws on illegal moves/FEN
+  instead of returning null; flagged back in `PLAN.md`'s Phase 2 research, built directly against
+  the current API). `engine/boardCells.ts` flattens its `board()` output into row-major cells for
+  rendering — verified against the real package (starting position, a position after a move) in
+  `boardCells.test.ts` rather than assumed from memory of the API shape.
+- **AI — the Stockfish spike, resolved**: `stockfish` (nmrugg/Chess.com's build), the **lite
+  single-threaded** WASM variant specifically (~1.8MB total). The full NNUE build is **~99MB** —
+  confirmed by actually inspecting the installed package, not the docs — nowhere near shippable.
+  Verified live in a real `Worker` (not assumed from reading the minified source): `new
+Worker('/stockfish/stockfish-19-lite-single.js')` speaks UCI directly over plain
+  `postMessage`/`onmessage` strings, no wrapper library needed (`engine/stockfish.ts`). Difficulty
+  maps to Stockfish's own `Skill Level` (0–20) and search `movetime`
+  (`engine/types.ts`'s `DIFFICULTY_CONFIG`). The engine file is excluded from the PWA's install-time
+  precache (`vite.config.ts`) — loaded on demand via the ordinary HTTP cache instead of adding
+  1.8MB to every installer's initial download for a feature many players won't touch.
+- **Full Game mode** (`components/FullGamePage.tsx`): tap-to-select-then-tap-target, legal-move
+  dots, undo (pops one FEN snapshot), hint (a short Stockfish search, shown as a highlight, not
+  auto-played), board flip, checkmate/stalemate/draw detection. Always plays as White; promotion
+  auto-queens (no promotion-choice UI yet — a real, deliberate simplification, not a bug).
+- **Puzzle mode** — two kinds, both **original positions**, not imported from any puzzle database
+  (the brief flags checking the Lichess puzzle database's license before use; writing our own
+  sidesteps that question entirely):
+  - **Capture puzzles** (`engine/capturePuzzle.ts`): one knight/bishop/rook, a few static black
+    pawns, on a small empty board — its own tiny engine, not chess.js, since there's no second
+    player here and a "random black reply" would risk breaking a hand-computed minimum-moves
+    claim. The true minimum is instead **computed by BFS** over the real move graph (position ×
+    remaining-targets bitmask), so "3 stars = optimal" is a provable fact, not an estimate — same
+    approach as the sudoku generator verifying uniqueness instead of assuming it.
+  - **Mate-in-1 puzzles** (`engine/matePuzzles.ts`): kept to mate-in-1 specifically because it's
+    the one shape simple enough to verify with total confidence — apply the claimed move with
+    chess.js, assert `isCheckmate()`. This caught a real error during authoring: a hand-designed
+    "mate-in-1" left the king a legal escape square the eye missed, caught by the test before it
+    ever shipped (`matePuzzles.test.ts`). Mate-in-2/3 aren't shipped yet — verifying a forced
+    multi-move line needs real search, not just single-move checkmate detection, which isn't set
+    up.
+- **Scoring** (`engine/scoring.ts`): full games score higher for beating a harder difficulty
+  (winning on Hard outscores winning on Easy); puzzles score `100 − 20×hintsUsed` (capture
+  puzzles: extra moves beyond the BFS-computed minimum count the same as a hint).
+
 ## Not yet built
 
-Chess, Spot the Difference, Missing Piece — Phases 5–6 per `PLAN.md`.
+Spot the Difference, Missing Piece — Phase 6 per `PLAN.md`.
