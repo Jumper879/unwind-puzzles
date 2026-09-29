@@ -135,6 +135,35 @@ seed scheme below.
   material language as the home screen's game icons) rather than illustrated fruit art — a
   placeholder swap-in point for real artwork later, same as the other games' icon placeholders.
 
+## Crossword
+
+`src/games/crossword/`
+
+- **Content**: an original word/clue list (`engine/wordlist.ts`, ~65 words across lengths 3–7,
+  simple clues written for this project — not sourced from any external crossword database, so
+  there's no license question to resolve, unlike importing one would raise).
+- **Generator** (`engine/generator.ts`): a fixed grid _template_ (block layout, 180°-rotationally
+  symmetric) gets filled by backtracking — longest/most-constrained slots first, candidates tried
+  in a seeded-shuffled order, a word never reused twice in one puzzle, each slot's clue attached to
+  the word actually placed there. Deterministic per `(template, seed)`.
+- **Only one template ships so far, deliberately**: two denser hand-designed attempts — a 7×7
+  needing five different 7-letter words against a list that only has one, and a 5×5 with four
+  mutually-intersecting 5-letter slots — both failed to fill at all, caught by
+  `generator.test.ts` actually trying to fill them rather than by inspection. The generator
+  algorithm itself is verified correct and deterministic; growing the word list and adding denser
+  templates is a content task from here, not an engine change. Because of this, there's no
+  difficulty selector yet either — offering one that didn't actually change the puzzle would be a
+  control that looks functional but isn't, so it's left out rather than faked.
+- **Interaction**: tap a cell to select it (tap the same cell again to flip between across/down
+  when both exist there); typing auto-advances along the active word; backspace clears the current
+  cell, or steps back and clears the previous one if the current cell is already empty — standard
+  crossword-app behavior. A custom on-screen A–Z keyboard is used instead of the device's native
+  keyboard, per the brief ("doesn't fight the mobile keyboard").
+- **Check/Reveal**: Check flags any filled-but-wrong cells for 1.5s without changing them; Reveal
+  fills in one correct letter and counts against the score. **Scoring**
+  (`engine/scoring.ts`): `round(100 × correctCells/totalCells) − 5×reveals`; 3★ = complete with 0
+  reveals, 2★ = complete with ≤2 reveals, 1★ = complete at all.
+
 ## Not yet built
 
-Crossword, Chess, Spot the Difference, Missing Piece — Phases 5–6 per `PLAN.md`.
+Chess, Spot the Difference, Missing Piece — Phases 5–6 per `PLAN.md`.

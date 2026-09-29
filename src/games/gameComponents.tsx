@@ -18,4 +18,7 @@ export const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<() => Rea
   'fruit-match': lazy(() =>
     import('./fruit-match/components/FruitMatchPage').then((m) => ({ default: m.FruitMatchPage })),
   ),
+  crossword: lazy(() =>
+    import('./crossword/components/CrosswordPage').then((m) => ({ default: m.CrosswordPage })),
+  ),
 }

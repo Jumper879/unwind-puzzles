@@ -45,7 +45,7 @@ export const GAMES: GameMeta[] = [
   {
     id: 'crossword',
     name: 'Crossword',
-    tagline: 'Handmade packs, easy to hard',
+    tagline: 'Generated mini puzzles',
     accent: 'butter',
     phase: 5,
   },
