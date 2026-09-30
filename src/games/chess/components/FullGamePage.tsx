@@ -9,6 +9,7 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { FullGameSetup } from './FullGameSetup'
 import { Board } from './Board'
 import { toBoardCells } from '../engine/boardCells'
@@ -42,6 +43,8 @@ export function FullGamePage() {
   const [lastMove, setLastMove] = useState<[string, string] | null>(null)
   const [hintMove, setHintMove] = useState<[string, string] | null>(null)
   const [result, setResult] = useState<ResultState | null>(null)
+
+  useRegisterActiveRound(phase === 'playing', false)
 
   const engineRef = useRef<StockfishEngine | null>(null)
   const startTimeRef = useRef(0)

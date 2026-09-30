@@ -7,6 +7,7 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest, recordLocalLevelResult } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { SetupScreen } from './SetupScreen'
 import { Scene } from './Scene'
 import { generateScenePuzzle, getDifficultyConfig } from '../engine/generator'
@@ -40,6 +41,8 @@ export function SpotTheDifferencePage() {
   const [hintHotspot, setHintHotspot] = useState<SceneDifference | null>(null)
   const [wrongMarker, setWrongMarker] = useState<{ x: number; y: number } | null>(null)
   const [result, setResult] = useState<ResultState | null>(null)
+
+  useRegisterActiveRound(phase === 'playing', false)
 
   const startTimeRef = useRef(0)
   const wrongTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)

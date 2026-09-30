@@ -2,13 +2,14 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: all 7 build phases from the brief are shipped, plus a post-launch Phase 8 UI refresh**
-(new Loading/Start screens and a restyled Home, matching a set of approved mockups — see the
-Phase 8 report below). All 8 games are fully playable; Daily Unwind, streaks, achievements, XP,
-first-play tutorials and sound are real, local-first features, not stubs — see the Phase 7 report,
-plus the Phase 6 report for Spot the Difference/Missing Piece and the Phase 5 report for the
-Stockfish spike. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles
-(private).
+**Status: all 7 build phases from the brief are shipped, plus two post-launch UI passes** — Phase 8
+(new Loading/Start screens and a restyled Home, matching approved mockups) and Phase 9 (square
+`GameBox` cards, a new wordmark app icon, and a persistent Back/Home/Forward bar with a real X&O
+resume). See the Phase 9 and Phase 8 reports below. All 8 games are fully playable; Daily Unwind,
+streaks, achievements, XP, first-play tutorials and sound are real, local-first features, not
+stubs — see the Phase 7 report, plus the Phase 6 report for Spot the Difference/Missing Piece and
+the Phase 5 report for the Stockfish spike. Live at https://unwind-puzzles.vercel.app/ and
+github.com/Jumper879/unwind-puzzles (private).
 
 ---
 
@@ -462,3 +463,69 @@ constraint, not a shortcut). `BrandLogo`'s `variant="full"` is currently an alia
 this deploys. Take a look at Loading → Start → Home against the original mockups and flag anything
 that should sit differently; the object positions/sizes are all percentage-based constants in
 `StartScreen.tsx`, easy to nudge.
+
+---
+
+## 17. Phase 9 report — game boxes, new app icon, bottom navigation
+
+Another post-launch UI request: square `GameBox` cards replacing Phase 8's folder-tab cards, a new
+"unwind PUZZLES" wordmark app icon (favicon stays the mascot), and a persistent Back/Home/Forward
+bar. No game logic/scoring/database/auth changes, other than the "leaving a game" hooks the nav bar
+itself required.
+
+**GameBox**: square, no folder tab, `Lv N`/`★ N` meta for the 5 level-based games, `Best N` for the
+3 match/puzzle ones (X&O, Sudoku, Chess — same data gap already documented in the achievements
+work), or `New`. Added `getPerGameProgress()` to `localGameStore.ts` (stars/level aggregated per
+game across every mode, since Word Search alone has 6 theme "modes" with no single canonical one).
+Dark mode's shadow is black/60% per the brief, but the outline stayed white, not black — a literal
+black outline would be nearly invisible against the dark navy card, so the shadow was reworded to
+"black" while the outline that actually needs contrast kept Phase 8's proven color; flagging this
+interpretation rather than shipping something that looks broken.
+
+**App icon**: no SVG of the wordmark exists — only the flat raster already used by Loading. Rather
+than hand-tracing new path data, "unwind", the puzzle-piece dot, and "PUZZLES" were separated out of
+that raster by connected-component flood-fill (three real, disconnected shapes, not projection
+guessing — an earlier column/row-projection attempt genuinely failed because the wind-mark swooshes
+and the "u" overlap in x-range at different y, caught by inspecting the result, not assumed correct)
+so each could be sized/positioned independently per the brief's percentages. PUZZLES' "reduce letter
+spacing" was approximated with a ~10% horizontal squeeze before the final width-match scale, since
+there's no font data to actually re-track; noted as an approximation, not precision. The maskable
+variant's first pass (74% width) clipped the "d" outside Android's 80% safe circle — caught by
+actually rendering the safe-zone circle over it, not assumed to fit — fixed to 68%. New filenames
+throughout (`icon-wordmark-*.png`) so nothing keeps serving a stale cached icon; old mascot-based
+`icon-*.png`/`apple-touch-icon.png` and the Phase 1 vertical-vs-mascot `/dev/icons` comparison were
+deleted, not left unused. Readable at 40px (unwind) and 60px (both words) — checked directly against
+the generated files, not assumed from the source size.
+
+**Bottom nav**: Back/Forward move React Router's own history (`window.history.state.idx`, via
+`lib/navHistory.ts`) rather than a separate fake stack, so the phone's back gesture and the
+browser's own buttons always agree with the arrows — confirmed by walking the exact click-test path
+from the brief end to end. One real bug found and fixed that way: the Home button originally
+*pushed* a new history entry, which meant "Back" after Home→elsewhere→browser-back could walk into
+an *earlier* game instead of stopping at Home, failing the brief's last step. Fixed by making Home
+(and Back's own "nothing behind, go Home" fallback) `replace` the current entry instead of pushing
+one — re-ran the exact click-test path afterward to confirm.
+
+No game had any save/resume system before this. Built one real one — X&O specifically
+(`tic-tac-toe/resume.ts`, plain localStorage, saved on every move/undo) — so Back-then-Forward
+through X&O genuinely restores the live board, verified by screenshot diff between the pre-leave and
+post-forward board state, not assumed. The other 7 games all show the "Leave this puzzle?" confirm
+sheet instead, since none has anything to save yet — a real, honest gap, not hidden. A shared
+`useRegisterActiveRound` hook (one line per game) is what lets the nav bar know a round is live;
+Crossword's on-screen keyboard isn't a real `<input>`, so it signals separately through
+`useKeyboardOpenStore` — both verified live (search input and Crossword's keyboard both correctly
+hide the bar; Chess, Sudoku and Fruit Match boards all confirmed clear of it, per the brief's
+specific call-out).
+
+**Scope note**: Crossword's on-screen keyboard is shown for its entire `playing`+`result` phase (not
+just while a cell is actively being typed into), so the bar stays hidden for that whole span, not
+just brief flashes — the brief named Crossword specifically alongside "search" for this treatment,
+so this is intentional, but it does mean a browser/PWA player can't reach Home/Forward from the nav
+bar while playing Crossword (the device's own back gesture and, in Telegram, the native BackButton —
+wired to the same Back logic — still work). Flagging in case a lighter touch is preferred.
+
+**Verified live in Edge via Playwright**: the exact click-test path (Home → X&O → Back → Forward →
+Home button → Word Search → browser back → Back again), confirming the round restored and the app
+never returns to Loading/Start; the confirm-sheet and "keep playing"/"leave" branches on Sudoku; dark
+mode and 360×780; zero console errors throughout. 141/141 tests pass; lint and typecheck clean;
+production build succeeds.

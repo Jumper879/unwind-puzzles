@@ -3,6 +3,7 @@ import {
   getDailyPlayedToday,
   getLocalStatsSummary,
   getLocalTotalPlaytimeMs,
+  getPerGameProgress,
   recordLocalBest,
   recordLocalLevelResult,
 } from './localGameStore'
@@ -49,5 +50,17 @@ describe('localGameStore', () => {
     const summary = getLocalStatsSummary()
     expect(summary.gamesWithRecords).toBe(1)
     expect(summary.bests[0].gameId).toBe('tic-tac-toe')
+  })
+
+  it('getPerGameProgress aggregates highest level and total stars across every mode/difficulty for a game (e.g. Word Search across themes)', () => {
+    recordLocalLevelResult('word-search', 'animals', 'easy', 1, 3)
+    recordLocalLevelResult('word-search', 'animals', 'easy', 2, 2)
+    recordLocalLevelResult('word-search', 'ocean', 'hard', 1, 1)
+    recordLocalLevelResult('fruit-match', 'classic', 'easy', 5, 3)
+
+    const perGame = getPerGameProgress()
+    expect(perGame['word-search']).toEqual({ highestLevel: 2, totalStars: 6 })
+    expect(perGame['fruit-match']).toEqual({ highestLevel: 5, totalStars: 3 })
+    expect(perGame['tic-tac-toe']).toBeUndefined()
   })
 })

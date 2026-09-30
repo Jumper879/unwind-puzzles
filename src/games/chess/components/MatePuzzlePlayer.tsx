@@ -9,6 +9,7 @@ import { Board } from './Board'
 import { toBoardCells } from '../engine/boardCells'
 import { recordLocalBest } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { computePuzzleScore, computePuzzleStars } from '../engine/scoring'
 import type { ChessPuzzle } from '../engine/types'
 
@@ -27,6 +28,8 @@ export function MatePuzzlePlayer({
   const [hintUsed, setHintUsed] = useState(false)
   const [hintMove, setHintMove] = useState<[string, string] | null>(null)
   const [solved, setSolved] = useState<boolean | null>(null)
+
+  useRegisterActiveRound(solved === null, false)
 
   const chess = new Chess(fen)
 

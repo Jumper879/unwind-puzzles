@@ -7,6 +7,7 @@ import { CaptureBoard } from './CaptureBoard'
 import { movesFrom, solveMinMoves } from '../engine/capturePuzzle'
 import { recordLocalBest } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { computePuzzleScore, computePuzzleStars } from '../engine/scoring'
 import type { CapturePuzzleDef } from '../engine/capturePuzzle'
 
@@ -24,6 +25,8 @@ export function CapturePuzzlePlayer({
   const [remaining, setRemaining] = useState(new Set(puzzle.targets))
   const [moveCount, setMoveCount] = useState(0)
   const [solved, setSolved] = useState(false)
+
+  useRegisterActiveRound(!solved, false)
 
   const minMoves = solveMinMoves(puzzle) ?? puzzle.targets.length
   const legalMoves = new Set(movesFrom(puzzle.pieceType, position, puzzle.size, remaining))

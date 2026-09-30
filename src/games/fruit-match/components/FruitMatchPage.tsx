@@ -6,6 +6,7 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest, recordLocalLevelResult } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { createRng } from '../../../lib/rng'
 import { SetupScreen } from './SetupScreen'
 import { Board } from './Board'
@@ -37,6 +38,8 @@ export function FruitMatchPage() {
   const [score, setScore] = useState(0)
   const [movesUsed, setMovesUsed] = useState(0)
   const [result, setResult] = useState<ResultState | null>(null)
+
+  useRegisterActiveRound(phase === 'playing', false)
 
   const rngRef = useRef<() => number>(() => 0)
   const startTimeRef = useRef(0)

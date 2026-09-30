@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TopBar } from '../../../components/TopBar'
 import { Button } from '../../../components/Button'
@@ -7,6 +7,8 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest, recordLocalLevelResult } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
+import { useKeyboardOpenStore } from '../../../state/useKeyboardOpenStore'
 import { SetupScreen } from './SetupScreen'
 import { CrosswordGrid } from './CrosswordGrid'
 import { Keyboard } from './Keyboard'
@@ -41,6 +43,17 @@ export function CrosswordPage() {
 
   const startTimeRef = useRef(0)
   const incorrectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useRegisterActiveRound(phase === 'playing', false)
+
+  // The custom on-screen keyboard (not a real <input>) is visible any time
+  // we're past setup — BottomNav can't detect this on its own the way it
+  // detects a native input focusing, so it's signalled explicitly.
+  const setCustomKeyboardOpen = useKeyboardOpenStore((s) => s.setCustomKeyboardOpen)
+  useEffect(() => {
+    setCustomKeyboardOpen(phase !== 'setup')
+    return () => setCustomKeyboardOpen(false)
+  }, [phase, setCustomKeyboardOpen])
 
   function handleStart(chosenLevel: number) {
     const nextPuzzle = generateCrossword('mini-5', 'easy', `local-${chosenLevel}`)

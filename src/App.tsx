@@ -8,6 +8,8 @@ import { LoadingScreen } from './routes/LoadingScreen'
 import { StartScreen } from './routes/StartScreen'
 import { Drawer } from './components/Drawer'
 import { PwaUpdateToast } from './components/PwaUpdateToast'
+import { NavHistoryTracker } from './components/NavHistoryTracker'
+import { BottomNav, BOTTOM_NAV_CLEARANCE } from './components/BottomNav'
 import { Home } from './routes/Home'
 import { GameRoute } from './routes/GameRoute'
 
@@ -83,8 +85,12 @@ function AppShell() {
 
       {phase === 'ready' && (
         <BrowserRouter>
+          <NavHistoryTracker />
           <Drawer />
-          <main className="flex min-h-screen flex-1 flex-col">
+          <main
+            className="flex min-h-screen flex-1 flex-col"
+            style={{ paddingBottom: BOTTOM_NAV_CLEARANCE }}
+          >
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -102,6 +108,7 @@ function AppShell() {
               </Routes>
             </Suspense>
           </main>
+          <BottomNav />
           <PwaUpdateToast />
         </BrowserRouter>
       )}

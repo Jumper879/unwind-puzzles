@@ -163,6 +163,35 @@ export function getLocalStatsSummary(): LocalStatsSummary {
   }
 }
 
+export interface PerGameProgress {
+  highestLevel: number
+  totalStars: number
+}
+
+/**
+ * Per-game highest-level/total-stars, aggregated across every mode and
+ * difficulty that game has ever recorded progress under — used for Home's
+ * "Lv N / ★ N" box meta, which can't assume one canonical mode (Word
+ * Search alone has 6 theme "modes", each with its own progress key).
+ */
+export function getPerGameProgress(): Record<string, PerGameProgress> {
+  const result: Record<string, PerGameProgress> = {}
+
+  for (const key of Object.keys(localStorage)) {
+    const parts = parseKey(key, PROGRESS_PREFIX)
+    if (!parts) continue
+    const progress = readJSON<LevelProgress>(key)
+    if (!progress) continue
+
+    const entry = result[parts.gameId] ?? { highestLevel: 0, totalStars: 0 }
+    entry.highestLevel = Math.max(entry.highestLevel, progress.highestLevel)
+    entry.totalStars += Object.values(progress.starsByLevel).reduce((sum, s) => sum + s, 0)
+    result[parts.gameId] = entry
+  }
+
+  return result
+}
+
 export function getLocalLevelProgress(
   gameId: string,
   mode: string,

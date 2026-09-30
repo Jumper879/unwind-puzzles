@@ -7,6 +7,7 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest, recordLocalLevelResult } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { SetupScreen } from './SetupScreen'
 import { WordSearchGrid } from './WordSearchGrid'
 import { WordList } from './WordList'
@@ -38,6 +39,8 @@ export function WordSearchPage() {
 
   const startTimeRef = useRef(0)
   const hintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useRegisterActiveRound(phase === 'playing', false)
 
   useEffect(
     () => () => {

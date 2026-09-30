@@ -4,14 +4,20 @@ import { useUiStore } from '../state/useUiStore'
 import { BrandLogo } from '../components/BrandLogo'
 import { IconButton } from '../components/IconButton'
 import { BrutalCard } from '../components/BrutalCard'
-import { FolderCard } from '../components/FolderCard'
+import { GameBox } from '../components/GameBox'
 import { GAMES } from '../games/registry'
 import { getStreak } from '../lib/streak'
 import { getDailyPicks } from '../lib/daily'
-import { getDailyPlayedToday, getLocalStatsSummary, type LocalBestRow } from '../lib/localGameStore'
+import {
+  getDailyPlayedToday,
+  getLocalStatsSummary,
+  getPerGameProgress,
+  type LocalBestRow,
+  type PerGameProgress,
+} from '../lib/localGameStore'
 import { todayDateString } from '../lib/date'
 
-const FOLDER_COLORS: Record<string, string> = {
+const GAME_COLORS: Record<string, string> = {
   'tic-tac-toe': '#8EC5FF',
   crossword: '#FFE08A',
   'word-search': '#7FE0B0',
@@ -29,6 +35,26 @@ function bestScoreForGame(bests: LocalBestRow[], gameId: string): number | null 
   const rows = bests.filter((b) => b.gameId === gameId)
   if (rows.length === 0) return null
   return Math.max(...rows.map((b) => b.score))
+}
+
+/**
+ * "Lv N / ★ N" for the 5 games with real level progress (Word Search,
+ * Fruit Match, Crossword, Spot the Difference, Missing Piece); X&O, Sudoku
+ * and Chess are match/puzzle-based with no "levels" (same finding as the
+ * achievements work), so they fall back to their best score, or "New".
+ */
+function computeBoxMeta(
+  gameId: string,
+  bests: LocalBestRow[],
+  perGame: Record<string, PerGameProgress>,
+): string[] {
+  const progress = perGame[gameId]
+  if (progress && progress.highestLevel > 0) {
+    return [`Lv ${progress.highestLevel}`, `★ ${progress.totalStars}`]
+  }
+  const best = bestScoreForGame(bests, gameId)
+  if (best !== null) return [`Best ${best}`]
+  return ['New']
 }
 
 function HamburgerIcon() {
@@ -86,6 +112,7 @@ export function Home() {
   const playedToday = getDailyPlayedToday()
   const dailyDone = dailyPicks.filter((p) => playedToday.has(p.gameId)).length
   const stats = getLocalStatsSummary()
+  const perGame = getPerGameProgress()
 
   const filteredGames = query.trim()
     ? GAMES.filter((g) => g.name.toLowerCase().includes(query.trim().toLowerCase()))
@@ -175,20 +202,17 @@ export function Home() {
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {filteredGames.map((game) => {
-              const best = bestScoreForGame(stats.bests, game.id)
-              return (
-                <Link key={game.id} to={`/games/${game.id}`}>
-                  <FolderCard
-                    gameId={game.id}
-                    name={game.name}
-                    color={FOLDER_COLORS[game.id] ?? '#8EC5FF'}
-                    meta={best !== null ? `Best ${best}` : 'New'}
-                    isNew={NEW_GAME_IDS.has(game.id)}
-                  />
-                </Link>
-              )
-            })}
+            {filteredGames.map((game) => (
+              <Link key={game.id} to={`/games/${game.id}`}>
+                <GameBox
+                  gameId={game.id}
+                  name={game.name}
+                  color={GAME_COLORS[game.id] ?? '#8EC5FF'}
+                  meta={computeBoxMeta(game.id, stats.bests, perGame)}
+                  isNew={NEW_GAME_IDS.has(game.id)}
+                />
+              </Link>
+            ))}
           </div>
         )}
       </div>

@@ -138,7 +138,11 @@
   --home-bg: var(--navy-900);
   --home-surface: #0e1452;
   --home-ink: #ffffff;
-  --home-shadow: var(--navy-950);
+  /* Black at 60%, not solid navy-950 — a solid navy-950 shadow barely reads
+     against the navy-900 page background; black/60% stays a visible hard
+     edge. The outline itself stays white (unchanged) for the same reason —
+     a black outline here would be next to invisible. */
+  --home-shadow: rgb(0 0 0 / 60%);
   --brand-logo-horizontal: url(/brand/logo-horizontal-dark.webp);
 
   color-scheme: dark;
@@ -162,7 +166,7 @@
     --home-bg: var(--navy-900);
     --home-surface: #0e1452;
     --home-ink: #ffffff;
-    --home-shadow: var(--navy-950);
+    --home-shadow: rgb(0 0 0 / 60%);
     --brand-logo-horizontal: url(/brand/logo-horizontal-dark.webp);
 
     color-scheme: dark;

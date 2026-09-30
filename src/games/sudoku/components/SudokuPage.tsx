@@ -7,6 +7,7 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { SetupScreen } from './SetupScreen'
 import { Board } from './Board'
 import { NumberHand } from './NumberHand'
@@ -44,6 +45,8 @@ export function SudokuPage() {
   const [mistakes, setMistakes] = useState(0)
   const [hintsUsed, setHintsUsed] = useState(0)
   const [result, setResult] = useState<ResultState | null>(null)
+
+  useRegisterActiveRound(phase === 'playing', false)
 
   const startTimeRef = useRef(0)
 

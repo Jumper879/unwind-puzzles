@@ -7,6 +7,7 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest, recordLocalLevelResult } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
 import { SetupScreen } from './SetupScreen'
 import { MosaicGrid } from './MosaicGrid'
 import { ChoiceGrid } from './ChoiceGrid'
@@ -36,6 +37,8 @@ export function MissingPiecePage() {
   const [hintUsed, setHintUsed] = useState(false)
   const [hintShapeType, setHintShapeType] = useState<string | null>(null)
   const [result, setResult] = useState<ResultState | null>(null)
+
+  useRegisterActiveRound(phase === 'playing', false)
 
   const startTimeRef = useRef(0)
 

@@ -7,6 +7,8 @@ import { SpeechBubble } from '../../../components/SpeechBubble'
 import { ResultSheet } from '../../../components/ResultSheet'
 import { recordLocalBest } from '../../../lib/localGameStore'
 import { usePlatform } from '../../../platform/PlatformProvider'
+import { useRegisterActiveRound } from '../../../lib/useRegisterActiveRound'
+import { clearResumeState, loadResumeState, saveResumeState } from '../resume'
 import { SetupScreen } from './SetupScreen'
 import { Board } from './Board'
 import { applyMove, checkWinner, createEmptyBoard, isBoardFull } from '../engine/board'
@@ -33,22 +35,31 @@ export function TicTacToePage() {
   const navigate = useNavigate()
   const platform = usePlatform()
 
-  const [mode, setMode] = useState<TicTacToeMode>('classic')
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
-  const [phase, setPhase] = useState<Phase>('setup')
+  // Resume a saved mid-match, computed once via a lazy initializer (not an
+  // effect + setState, which the React Compiler flags as a cascading
+  // render) — this is what lets Back then Forward land back in the same
+  // match instead of a fresh setup screen. X&O is the one game with real
+  // save support so far; see resume.ts.
+  const [resumed] = useState(() => loadResumeState())
 
-  const [history, setHistory] = useState<BoardType[]>([])
-  const [turn, setTurn] = useState<'X' | 'O'>(PLAYER)
-  const [playerMoveCount, setPlayerMoveCount] = useState(0)
+  const [mode, setMode] = useState<TicTacToeMode>(resumed?.mode ?? 'classic')
+  const [difficulty, setDifficulty] = useState<Difficulty>(resumed?.difficulty ?? 'medium')
+  const [phase, setPhase] = useState<Phase>(resumed ? 'playing' : 'setup')
+
+  const [history, setHistory] = useState<BoardType[]>(resumed?.history ?? [])
+  const [turn, setTurn] = useState<'X' | 'O'>(resumed?.turn ?? PLAYER)
+  const [playerMoveCount, setPlayerMoveCount] = useState(resumed?.playerMoveCount ?? 0)
   const [isAiThinking, setIsAiThinking] = useState(false)
   const [winLine, setWinLine] = useState<number[] | null>(null)
   const [hintCell, setHintCell] = useState<number | null>(null)
   const [result, setResult] = useState<ResultState | null>(null)
 
-  const startTimeRef = useRef(0)
+  const startTimeRef = useRef(resumed?.startTime ?? 0)
   const aiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const board = history[history.length - 1] ?? createEmptyBoard(mode)
+
+  useRegisterActiveRound(phase === 'playing', true)
 
   useEffect(
     () => () => {
@@ -67,6 +78,7 @@ export function TicTacToePage() {
       const score = computeScore(outcome, movesAtFinish, mode)
       const stars = computeStars(score)
       const isNewBest = recordLocalBest('tic-tac-toe', mode, difficulty, score, timeMs)
+      clearResumeState()
       platform.haptics.notification(
         outcome === 'win' ? 'success' : outcome === 'loss' ? 'error' : 'warning',
       )
@@ -77,13 +89,20 @@ export function TicTacToePage() {
     [difficulty, mode, platform],
   )
 
+  // Takes the full history-so-far explicitly (including the player's move
+  // that triggered this AI turn) rather than closing over the `history`
+  // state — this setTimeout callback runs 450ms after being scheduled, by
+  // which point a closed-over `history` would be stale (the same class of
+  // bug already fixed elsewhere in this codebase, e.g. finishMatch above).
   const runAiTurn = useCallback(
-    (currentBoard: BoardType, movesSoFar: number) => {
+    (historySoFar: BoardType[], movesSoFar: number) => {
+      const currentBoard = historySoFar[historySoFar.length - 1]
       setIsAiThinking(true)
       aiTimeoutRef.current = setTimeout(() => {
         const move = pickAiMove(currentBoard, mode, AI, difficulty)
         const next = applyMove(currentBoard, move, AI)
-        setHistory((h) => [...h, next])
+        const nextHistory = [...historySoFar, next]
+        setHistory(nextHistory)
         setIsAiThinking(false)
 
         const size = mode === 'classic' ? 3 : 4
@@ -94,6 +113,14 @@ export function TicTacToePage() {
           finishMatch(next, 'draw', movesSoFar)
         } else {
           setTurn(PLAYER)
+          saveResumeState({
+            mode,
+            difficulty,
+            history: nextHistory,
+            turn: PLAYER,
+            playerMoveCount: movesSoFar,
+            startTime: startTimeRef.current,
+          })
         }
       }, AI_MOVE_DELAY_MS)
     },
@@ -102,6 +129,7 @@ export function TicTacToePage() {
 
   function handleStart() {
     const empty = createEmptyBoard(mode)
+    clearResumeState()
     setHistory([empty])
     setTurn(PLAYER)
     setPlayerMoveCount(0)
@@ -116,7 +144,8 @@ export function TicTacToePage() {
     if (isAiThinking || turn !== PLAYER) return
     const next = applyMove(board, index, PLAYER)
     const movesAtFinish = playerMoveCount + 1
-    setHistory((h) => [...h, next])
+    const nextHistory = [...history, next]
+    setHistory(nextHistory)
     setPlayerMoveCount(movesAtFinish)
     setHintCell(null)
 
@@ -131,14 +160,32 @@ export function TicTacToePage() {
       return
     }
     setTurn(AI)
-    runAiTurn(next, movesAtFinish)
+    saveResumeState({
+      mode,
+      difficulty,
+      history: nextHistory,
+      turn: AI,
+      playerMoveCount: movesAtFinish,
+      startTime: startTimeRef.current,
+    })
+    runAiTurn(nextHistory, movesAtFinish)
   }
 
   function handleUndo() {
     if (isAiThinking || history.length < 3) return
-    setHistory((h) => h.slice(0, -2))
-    setPlayerMoveCount((c) => Math.max(0, c - 1))
+    const nextHistory = history.slice(0, -2)
+    const nextMoveCount = Math.max(0, playerMoveCount - 1)
+    setHistory(nextHistory)
+    setPlayerMoveCount(nextMoveCount)
     setHintCell(null)
+    saveResumeState({
+      mode,
+      difficulty,
+      history: nextHistory,
+      turn: PLAYER,
+      playerMoveCount: nextMoveCount,
+      startTime: startTimeRef.current,
+    })
   }
 
   function handleHint() {
@@ -168,7 +215,10 @@ export function TicTacToePage() {
         right={
           <button
             type="button"
-            onClick={() => setPhase('setup')}
+            onClick={() => {
+              clearResumeState()
+              setPhase('setup')
+            }}
             aria-label="Restart"
             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-surface-outline)] bg-[var(--color-surface)] shadow-[0_6px_14px_var(--color-shadow)] active:scale-95"
           >
