@@ -6,6 +6,8 @@ import { Card } from '../components/Card'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useSessionStore } from '../state/useSessionStore'
 import { getGame } from '../games/registry'
+import { getLocalStatsSummary, type LocalBestRow } from '../lib/localGameStore'
+import { getStreak } from '../lib/streak'
 
 interface PersonalBestRow {
   game_id: string
@@ -24,6 +26,31 @@ interface RecordsData {
   gamesWithRecords: number
 }
 
+function localBestToRow(b: LocalBestRow): PersonalBestRow {
+  return {
+    game_id: b.gameId,
+    mode: b.mode,
+    difficulty: b.difficulty,
+    best_score: b.score,
+    best_time_ms: b.timeMs,
+    achieved_at: b.achievedAt,
+  }
+}
+
+function loadLocalRecordsData(): RecordsData {
+  const summary = getLocalStatsSummary()
+  const streak = getStreak()
+  return {
+    personalBests: summary.bests
+      .map(localBestToRow)
+      .sort((a, b) => b.achieved_at.localeCompare(a.achieved_at)),
+    totalStars: summary.totalStars,
+    totalPlaytimeMs: summary.totalPlaytimeMs,
+    longestStreak: streak.longest,
+    gamesWithRecords: summary.gamesWithRecords,
+  }
+}
+
 function formatPlaytime(ms: number): string {
   const totalMinutes = Math.round(ms / 60000)
   if (totalMinutes < 60) return `${totalMinutes}m`
@@ -35,13 +62,14 @@ function formatPlaytime(ms: number): string {
 export function Records() {
   const session = useSessionStore((s) => s.session)
   const sessionStatus = useSessionStore((s) => s.status)
-  const [data, setData] = useState<RecordsData | null>(null)
+  const [data, setData] = useState<RecordsData | null>(isSupabaseConfigured ? null : loadLocalRecordsData())
   const [loading, setLoading] = useState(isSupabaseConfigured)
 
   useEffect(() => {
-    // Not configured: `loading` already started false (see useState above),
-    // nothing to do. Configured but no session yet: stay in the loading
-    // state — this effect re-runs once useBootstrapSession resolves one.
+    // Not configured: local data is already loaded synchronously in the
+    // initial state above — nothing to do here. Configured but no session
+    // yet: stay in the loading state, this effect re-runs once
+    // useBootstrapSession resolves one.
     if (!isSupabaseConfigured || !supabase || !session) return
     let cancelled = false
 
@@ -85,13 +113,7 @@ export function Records() {
         center={<span className="font-[var(--font-heading)] font-extrabold">My Records</span>}
       />
 
-      {!isSupabaseConfigured ? (
-        <EmptyState
-          mood="sleepy"
-          title="Not connected yet"
-          message="This app is running in local-only guest mode — records sync once a Supabase project is configured."
-        />
-      ) : loading && sessionStatus !== 'error' ? (
+      {isSupabaseConfigured && loading && sessionStatus !== 'error' ? (
         <div className="flex flex-1 items-center justify-center text-[var(--color-text-secondary)]">
           Loading…
         </div>

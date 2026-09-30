@@ -8,6 +8,8 @@
  * mirror the UI reads from.
  */
 
+import { todayDateString } from './date'
+
 interface BestResult {
   score: number
   timeMs: number
@@ -25,6 +27,34 @@ function bestKey(gameId: string, mode: string, difficulty: string): string {
 
 function progressKey(gameId: string, mode: string, difficulty: string): string {
   return `unwind:local:progress:${gameId}:${mode}:${difficulty}`
+}
+
+const BEST_PREFIX = 'unwind:local:best:'
+const PROGRESS_PREFIX = 'unwind:local:progress:'
+const TOTAL_PLAYTIME_KEY = 'unwind:local:totalPlaytimeMs'
+const DAILY_PLAYED_PREFIX = 'unwind:local:dailyPlayed:'
+
+/** Splits a `prefix:gameId:mode:difficulty` key back into its parts. Game ids are always kebab-case (no colons), so this split is unambiguous. */
+function parseKey(key: string, prefix: string): { gameId: string; mode: string; difficulty: string } | null {
+  if (!key.startsWith(prefix)) return null
+  const rest = key.slice(prefix.length)
+  const parts = rest.split(':')
+  if (parts.length !== 3) return null
+  const [gameId, mode, difficulty] = parts
+  return { gameId, mode, difficulty }
+}
+
+function recordDailyGamePlayed(gameId: string): void {
+  const key = DAILY_PLAYED_PREFIX + todayDateString()
+  const played = readJSON<string[]>(key) ?? []
+  if (!played.includes(gameId)) {
+    localStorage.setItem(key, JSON.stringify([...played, gameId]))
+  }
+}
+
+/** Game ids the player has completed a session in today (any result, win or lose). */
+export function getDailyPlayedToday(): Set<string> {
+  return new Set(readJSON<string[]>(DAILY_PLAYED_PREFIX + todayDateString()) ?? [])
 }
 
 function readJSON<T>(key: string): T | null {
@@ -58,7 +88,79 @@ export function recordLocalBest(
       JSON.stringify({ score, timeMs, achievedAt: new Date().toISOString() }),
     )
   }
+
+  // Every game calls this exactly once per finished session (win or lose,
+  // new best or not) — the one choke point every game's finish() already
+  // goes through, so playtime/daily-played tracking lands here instead of
+  // needing a separate call wired into all 8 games individually.
+  const currentTotal = Number(localStorage.getItem(TOTAL_PLAYTIME_KEY) ?? '0')
+  localStorage.setItem(TOTAL_PLAYTIME_KEY, String(currentTotal + Math.max(0, timeMs)))
+  recordDailyGamePlayed(gameId)
+
   return isBetter
+}
+
+export function getLocalTotalPlaytimeMs(): number {
+  return Number(localStorage.getItem(TOTAL_PLAYTIME_KEY) ?? '0')
+}
+
+export interface LocalBestRow {
+  gameId: string
+  mode: string
+  difficulty: string
+  score: number
+  timeMs: number
+  achievedAt: string
+}
+
+export interface LocalStatsSummary {
+  bests: LocalBestRow[]
+  gamesWithRecords: number
+  totalStars: number
+  totalPlaytimeMs: number
+  hasThreeStarLevel: boolean
+  gameIdsWithStars: Set<string>
+}
+
+/**
+ * Scans every local best/progress key in localStorage to build the same
+ * shape of summary Records/Stats/Achievements need — computed fresh each
+ * call rather than kept as a second, driftable copy of the truth.
+ */
+export function getLocalStatsSummary(): LocalStatsSummary {
+  const bests: LocalBestRow[] = []
+  let totalStars = 0
+  let hasThreeStarLevel = false
+  const gameIdsWithStars = new Set<string>()
+
+  for (const key of Object.keys(localStorage)) {
+    const bestParts = parseKey(key, BEST_PREFIX)
+    if (bestParts) {
+      const best = readJSON<BestResult>(key)
+      if (best) bests.push({ ...bestParts, ...best })
+      continue
+    }
+    const progressParts = parseKey(key, PROGRESS_PREFIX)
+    if (progressParts) {
+      const progress = readJSON<LevelProgress>(key)
+      if (progress) {
+        for (const stars of Object.values(progress.starsByLevel)) {
+          totalStars += stars
+          if (stars > 0) gameIdsWithStars.add(progressParts.gameId)
+          if (stars >= 3) hasThreeStarLevel = true
+        }
+      }
+    }
+  }
+
+  return {
+    bests,
+    gamesWithRecords: new Set(bests.map((b) => b.gameId)).size,
+    totalStars,
+    totalPlaytimeMs: getLocalTotalPlaytimeMs(),
+    hasThreeStarLevel,
+    gameIdsWithStars,
+  }
 }
 
 export function getLocalLevelProgress(

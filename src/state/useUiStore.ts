@@ -1,8 +1,15 @@
 import { create } from 'zustand'
+import { setSoundEnabledGetter } from '../lib/sound'
 
 export type ThemePreference = 'light' | 'dark' | 'system'
 
 const THEME_KEY = 'unwind:theme'
+const SOUND_KEY = 'unwind:sound-enabled'
+
+function loadInitialSoundEnabled(): boolean {
+  const stored = localStorage.getItem(SOUND_KEY)
+  return stored === null ? true : stored === 'true'
+}
 
 function applyTheme(pref: ThemePreference) {
   const root = document.documentElement
@@ -24,6 +31,9 @@ interface UiState {
 
   theme: ThemePreference
   setTheme(pref: ThemePreference): void
+
+  soundEnabled: boolean
+  setSoundEnabled(enabled: boolean): void
 }
 
 const initialTheme = loadInitialTheme()
@@ -41,4 +51,12 @@ export const useUiStore = create<UiState>((set) => ({
     applyTheme(pref)
     set({ theme: pref })
   },
+
+  soundEnabled: loadInitialSoundEnabled(),
+  setSoundEnabled: (enabled) => {
+    localStorage.setItem(SOUND_KEY, String(enabled))
+    set({ soundEnabled: enabled })
+  },
 }))
+
+setSoundEnabledGetter(() => useUiStore.getState().soundEnabled)

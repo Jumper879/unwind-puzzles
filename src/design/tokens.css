@@ -48,6 +48,11 @@
   --mint-500: #6bc7a8;
   --mint-600: #46b993;
   --mint-700: #389475;
+  /* Text-on-light-mint-badge color — mint-700 on mint-100/200 measures only
+     ~2.9-3.3:1 (Lighthouse a11y audit caught it), below the 4.5:1 WCAG AA
+     floor for normal text. mint-800 is 6.4-7.3:1 against those same
+     backgrounds — still reads as "mint," just dark enough to pass. */
+  --mint-800: #1f5943;
 
   --peach-100: #fbece0;
   --peach-200: #f6dac1;

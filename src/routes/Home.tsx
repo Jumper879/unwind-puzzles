@@ -5,8 +5,11 @@ import { GameIcon } from '../components/GameIcon'
 import { BrandMark } from '../components/BrandMark'
 import { GAMES } from '../games/registry'
 import { GAME_COMPONENTS } from '../games/gameComponents'
+import { getStreak } from '../lib/streak'
 
 export function Home() {
+  const streak = getStreak()
+
   return (
     <div className="flex flex-1 flex-col pb-10">
       <TopBar center={<BrandMark />} />
@@ -34,7 +37,9 @@ export function Home() {
         <div className="mt-4 flex items-center justify-between rounded-2xl border border-[var(--color-surface-outline)] bg-[var(--color-surface)] px-4 py-2.5 text-sm">
           <span className="text-[var(--color-text-secondary)]">Streak</span>
           <span className="font-[var(--font-heading)] font-bold text-[var(--color-text-primary)]">
-            0 days — play today to start one
+            {streak.current > 0
+              ? `${streak.current} day${streak.current === 1 ? '' : 's'} — keep it going`
+              : '0 days — play today to start one'}
           </span>
         </div>
 
@@ -53,7 +58,7 @@ export function Home() {
                   <p className="text-xs text-[var(--color-text-secondary)]">{game.tagline}</p>
                 </div>
                 {GAME_COMPONENTS[game.id] ? (
-                  <span className="mt-auto self-start rounded-full bg-[var(--mint-200)] px-2.5 py-1 text-[11px] font-bold text-[var(--mint-700)]">
+                  <span className="mt-auto self-start rounded-full bg-[var(--mint-200)] px-2.5 py-1 text-[11px] font-bold text-[var(--mint-800)]">
                     Play now
                   </span>
                 ) : (

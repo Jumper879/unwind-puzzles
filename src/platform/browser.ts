@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { playImpact, playNotification } from '../lib/sound'
 import type { PlatformAdapter, PlatformSession, ThemeMode } from './types'
 
 const GUEST_ID_KEY = 'unwind:guest-id'
@@ -57,11 +58,13 @@ export function createBrowserAdapter(): PlatformAdapter {
 
     haptics: {
       impact(style) {
+        playImpact(style)
         if (!('vibrate' in navigator)) return
         const ms = style === 'heavy' ? 30 : style === 'medium' ? 18 : 10
         navigator.vibrate(ms)
       },
       notification(type) {
+        playNotification(type)
         if (!('vibrate' in navigator)) return
         navigator.vibrate(type === 'error' ? [20, 40, 20] : 15)
       },

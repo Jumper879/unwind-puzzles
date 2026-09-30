@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { playImpact, playNotification } from '../lib/sound'
 import type { PlatformAdapter, PlatformSession, ThemeMode } from './types'
 import type { TelegramWebApp } from './telegram-webapp.d.ts'
 
@@ -84,9 +85,11 @@ export function createTelegramAdapter(tg: TelegramWebApp): PlatformAdapter {
 
     haptics: {
       impact(style) {
+        playImpact(style)
         tg.HapticFeedback.impactOccurred(style)
       },
       notification(type) {
+        playNotification(type)
         tg.HapticFeedback.notificationOccurred(type)
       },
     },

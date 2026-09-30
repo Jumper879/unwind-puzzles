@@ -2,7 +2,11 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: Phases 1–6 done.** All 8 games are now shipped and playable, verified end to end in a real browser, not just typechecked — see the Phase 6 report below for Spot the Difference and Missing Piece (the last two games), plus the Phase 5 report for the Stockfish package spike and the mascot/icon branding switch. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
+**Status: Phases 1–7 done — all 7 build phases from the brief are shipped.** All 8 games are fully
+playable; Daily Unwind, streaks, achievements, XP, first-play tutorials and sound are now real,
+local-first features, not stubs — see the Phase 7 report below, plus the Phase 6 report for Spot
+the Difference/Missing Piece and the Phase 5 report for the Stockfish spike. Live at
+https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
 
 ---
 
@@ -122,7 +126,8 @@ RLS is enabled on every table from the first migration, not retrofitted later.
 5. **Crossword + Chess** — ✅ done. Full games vs Stockfish, plus the reference-1-style puzzle mode; Stockfish package spike resolved (see the Phase 5 report).
 6. **Spot the Difference + Mosaic/Missing Piece** — ✅ done. Both fully procedural (no licensed
    art), see the Phase 6 report below.
-7. **Daily Unwind, streaks, achievements, XP, tutorials, sound, full test pass, Lighthouse audit, docs complete.**
+7. **Daily Unwind, streaks, achievements, XP, tutorials, sound, full test pass, Lighthouse audit,
+   docs complete** — ✅ done. See the Phase 7 report below.
 
 After each phase: run the app, test at 360×780 and desktop, fix issues, update the relevant doc file, short summary of done/next/needed-from-you.
 
@@ -275,3 +280,84 @@ https://unwind-puzzles.vercel.app/games/spot-the-difference and /games/mosaic on
 Phase 7 (Daily Unwind, streaks, achievements, XP, tutorials, sound, full test pass, Lighthouse
 audit, docs complete) is the only phase left — say the word to start it, or flag anything you want
 changed first.
+
+---
+
+## 15. Phase 7 report — all 7 phases now done
+
+**Built:** Daily Unwind (3 games picked deterministically per day, streak tracking), Achievements
+(8 conditions derived from real local data), XP/Level (Stats page), first-play tutorial overlays
+for all 8 games, and procedural sound (Web Audio tones, no audio files — same policy as every
+game's art). 24 new tests, 140 total.
+
+**The single-choke-point pattern, used 3 times to avoid touching 8 game files individually**:
+every game already calls `recordLocalBest` exactly once per finished session and `haptics.impact`/
+`haptics.notification` at its win/tap/error moments — both pre-existing, both already used by all 8
+games. Rather than wiring Daily Unwind completion, total playtime, and sound into each game
+separately:
+- Playtime accumulation and "played today" tracking were added **inside** `recordLocalBest` itself
+  (`localGameStore.ts`) — every game gets both with zero per-game changes.
+- Sound was added **inside** the platform adapter's `haptics.impact`/`haptics.notification`
+  (`browser.ts` and `telegram.ts`) — every existing haptic call site now also plays a tone.
+- The first-play tutorial overlay was added **inside** `GameRoute.tsx`, the one route every game
+  already renders through, instead of 8 separate `useEffect`s.
+
+**A real, pre-existing dead-UI bug found and fixed**: `Records.tsx` ("My Records") only ever read
+from Supabase — with no project configured (true for every real visitor right now), it permanently
+showed "Not connected yet" no matter how much a guest had actually played, even though every game
+has been recording real local scores since Phase 3. Rebuilt with a local-first fallback
+(`getLocalStatsSummary()`, scans `localStorage` for every `best`/`progress` key) so it shows real
+data for the common case and only defers to Supabase once a project actually exists — matching the
+local-first pattern already used everywhere else. The home screen's streak row (hardcoded "0 days")
+and `HowToPlay.tsx`'s copy (which promised a "Relax mode" that was never built, and named only 2
+games as having tutorials though this was written back in Phase 1 scaffolding) were fixed the same
+way — verified against the actual code before rewriting, not just against my own memory of what I'd
+built.
+
+**Star-based achievements are honestly scoped**: only 5 of the 8 games (Word Search, Fruit Match,
+Crossword, Spot the Difference, and Missing Piece) have a level system that produces stars; X&O,
+Sudoku Cards and Chess are match/puzzle-based with no "levels." Every achievement condition was checked against this before writing it — `well-rounded`
+("play all 8 games") reads from `bests` (works for all 8), while `getting-the-hang-of-it` /
+`perfectionist` etc. read from star data (only ever produced by the 5) — so nothing requires an
+achievement condition that's structurally impossible to reach.
+
+**Lighthouse audit — run for real against a production build** (`vite preview`, Edge headless via
+`CHROME_PATH`, mobile form factor), not skipped as a scope cut. First pass: Performance 67,
+Accessibility 93, Best Practices 100, SEO 91. Investigated and fixed every specific finding rather
+than stopping at the number:
+- **Accessibility → 100**: `color-contrast` flagged the "Play now" / level-star / "Done ✓" badge
+  style (`bg-mint-100` or `-200` + `text-mint-700`, measured 2.9–3.3:1) used identically across 8 files
+  — a systemic issue, not a one-off. Added a new `--mint-800` token (computed to land at 6.4–7.3:1
+  against both backgrounds, verified with the actual WCAG relative-luminance formula, not eyeballed)
+  and swapped all 8 usages. `landmark-one-main` flagged that no `<main>` element existed anywhere —
+  added one wrapping the router in `App.tsx`.
+- **SEO → 100**: `robots-txt` failed because no `public/robots.txt` existed at all — the SPA's
+  catch-all route was serving `index.html` for that path, and Lighthouse correctly rejected HTML as
+  invalid robots.txt syntax. Added a real one.
+- **Performance 67 → 77**: Total Blocking Time was 830ms, by far the worst-weighted metric. Every
+  non-critical route (Records, Leaderboard, Daily Unwind, Achievements, Stats, Settings, How to
+  Play, About, the dev icon preview) was eager-loaded from `App.tsx` even though only Home and the
+  game shell are needed for first paint. Code-split all of them the same way games already are
+  (`React.lazy` + one shared `<Suspense>`) — TBT dropped to 390ms and the main JS bundle shrank
+  from 444.96 kB to 416.02 kB. Remaining performance headroom is mostly Speed Index (6.4s), which is
+  substantially the deliberate 2.2s animated splash screen — Lighthouse can't distinguish
+  "intentionally showing brand content first" from "slow to render," and removing the splash to
+  chase this number would undercut a launch-experience requirement from the original brief. Noting
+  this honestly rather than either hiding it or ripping out the splash to game the score.
+
+**Scope cuts, documented not hidden**: Daily Unwind picks 3 *games* to play (real gameplay, real
+completion tracking), not 3 specially-generated puzzles embedded in one flow — building a
+per-game "launch this exact seeded puzzle from outside" API across 8 structurally different game
+components would have been a much larger, more invasive change for a difference players are
+unlikely to notice. XP uses a flat 100-per-level curve rather than a tuned progression curve — there's
+no live population yet to tune pacing against. The original brief's "Relax mode" (per-game
+timer/star-pressure toggle) was never built in any phase and `HowToPlay.tsx` incorrectly implied it
+existed until this pass — now corrected rather than built retroactively, since it wasn't in Phase
+7's explicit scope and would mean touching all 8 games again.
+
+**Needed from you:** nothing blocking. All 7 phases from the brief are done — try Daily Unwind,
+Achievements, Stats and My Records at https://unwind-puzzles.vercel.app/ once this deploys (a fresh
+game will show a tutorial overlay the first time you open it; Settings has a new Sound toggle).
+From here it's your call: ship as-is, or flag polish items (more crossword/word-search content,
+promotion-choice UI in Chess, deeper Fruit Match goal types, etc. — all noted as scope cuts in
+`GAMES.md`) for a follow-up pass.

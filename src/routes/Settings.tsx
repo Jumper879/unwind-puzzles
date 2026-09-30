@@ -11,6 +11,8 @@ const OPTIONS: { value: ThemePreference; label: string }[] = [
 export function Settings() {
   const theme = useUiStore((s) => s.theme)
   const setTheme = useUiStore((s) => s.setTheme)
+  const soundEnabled = useUiStore((s) => s.soundEnabled)
+  const setSoundEnabled = useUiStore((s) => s.setSoundEnabled)
 
   return (
     <div className="flex flex-1 flex-col pb-10">
@@ -42,8 +44,35 @@ export function Settings() {
           </div>
         </Card>
 
+        <Card className="mt-4 flex items-center justify-between p-5">
+          <div>
+            <p className="font-[var(--font-heading)] font-bold text-[var(--color-text-primary)]">
+              Sound
+            </p>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Soft tones for taps, wins and hints.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={soundEnabled}
+            aria-label="Toggle sound"
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${
+              soundEnabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-outline)]'
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                soundEnabled ? 'translate-x-7' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </Card>
+
         <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)]">
-          Sound, haptics and relax mode land alongside their first games (Phase 3+).
+          Haptic feedback follows your device's own vibration/haptics settings.
         </p>
       </div>
     </div>

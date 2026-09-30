@@ -50,7 +50,7 @@ export function SetupScreen({ onStart }: { onStart: (level: number) => void }) {
                 onClick={() => onStart(level)}
                 className={`flex flex-col items-center rounded-xl border py-2 text-sm font-bold disabled:opacity-40 ${
                   stars > 0
-                    ? 'border-[var(--mint-500)] bg-[var(--mint-100)] text-[var(--mint-700)]'
+                    ? 'border-[var(--mint-500)] bg-[var(--mint-100)] text-[var(--mint-800)]'
                     : 'border-[var(--color-surface-outline)] bg-[var(--color-surface)] text-[var(--color-text-primary)]'
                 }`}
               >
