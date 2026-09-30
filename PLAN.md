@@ -2,11 +2,13 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: Phases 1–7 done — all 7 build phases from the brief are shipped.** All 8 games are fully
-playable; Daily Unwind, streaks, achievements, XP, first-play tutorials and sound are now real,
-local-first features, not stubs — see the Phase 7 report below, plus the Phase 6 report for Spot
-the Difference/Missing Piece and the Phase 5 report for the Stockfish spike. Live at
-https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
+**Status: all 7 build phases from the brief are shipped, plus a post-launch Phase 8 UI refresh**
+(new Loading/Start screens and a restyled Home, matching a set of approved mockups — see the
+Phase 8 report below). All 8 games are fully playable; Daily Unwind, streaks, achievements, XP,
+first-play tutorials and sound are real, local-first features, not stubs — see the Phase 7 report,
+plus the Phase 6 report for Spot the Difference/Missing Piece and the Phase 5 report for the
+Stockfish spike. Live at https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles
+(private).
 
 ---
 
@@ -361,3 +363,102 @@ game will show a tutorial overlay the first time you open it; Settings has a new
 From here it's your call: ship as-is, or flag polish items (more crossword/word-search content,
 promotion-choice UI in Chess, deeper Fruit Match goal types, etc. — all noted as scope cuts in
 `GAMES.md`) for a follow-up pass.
+
+---
+
+## 16. Phase 8 report — Loading, Start, and a restyled Home (post-launch UI refresh)
+
+A separate request after Phase 7: build a real Loading screen and a new Start screen from approved
+mockups, and restyle Home in a bolder "neo-brutalist" style from a reference screenshot — UI only,
+no changes to any game's logic, scoring, database, auth, or the platform adapter (confirmed: every
+game's engine/component file is untouched in this diff).
+
+**Assets, extracted rather than redrawn.** The mockups/reference came in as pasted images with no
+individual object files — only one combined "object grid" preview and the mascot cutout. Both
+turned out to have real alpha transparency (confirmed with Pillow before assuming anything), so all
+10 objects (pawn, puzzle piece, ring, cross, wifi-arc swoosh, orange, tile "8", triangle, ball, tile
+"A") were **cropped programmatically** from the grid using alpha-channel bounding-box detection, not
+eyeballed. Only a **cube** had no source — hand-drawn as a small flat-shaded SVG, the same
+no-licensed-art policy as every game's own visuals. The ring (a literal donut/"O" shape) stands in
+for tic-tac-toe's O, and the cross (a "+" rendered at a diagonal in the source art, which reads as
+an X) stands in for the X — both genuinely fit, not forced.
+
+**The wordmark logo, chroma-keyed rather than hand-traced.** The only source (`brand/wordmark.png`)
+is a flat navy-square raster with white lettering, no transparency — redrawing the hand-lettered
+mark as fresh SVG path data would only ever be an approximation. Instead: computed each pixel's
+color-distance from the known navy background to build a real alpha mask of the actual letterforms
+(Pillow), verified the result by compositing it onto solid colors before using it anywhere. The
+result is pixel-faithful to the real mark, not a redraw. `BrandLogo`'s `wordmark` variant recolors
+this one mask live via CSS `mask-image` for any tone (white/blue/navy) — one asset, not one per
+color. The two-color mascot+wordmark horizontal lockup needed the same two-color extraction (a
+white mask and a separate blue-accent mask, classified per-pixel by nearest color), producing two
+pre-baked variants (onLight navy+blue, dark-mode white+blue) rather than a live recolor, since a
+single-color CSS mask can't represent two independent colors. Home's top-bar logo reads a
+`--brand-logo-horizontal` CSS custom property that's redefined inside the exact same
+`:root[data-theme='dark']` / `prefers-color-scheme` blocks every other themed token already uses —
+so it swaps automatically with the page's theme, with no JS theme-detection code needed at all.
+
+**Loading screen**: real weighted progress (fonts via `document.fonts.ready`, the player's session
+via `useSessionStore`'s status, and every critical Start-screen image actually decoding — not a
+fake timer), a hard 10s safety timeout that still hands off to Start while those tasks keep running
+in the background, a 1.2s minimum display time, and a 250ms hold at 100% before a 400ms cross-fade.
+`role="progressbar"` with real `aria-valuenow`.
+
+**Start screen**: built as real animated layers (mascot, 12 floating objects, wave-shape background,
+logo, tagline, button), not a flattened image of the mockup. Entrance is staggered per the brief
+(logo → tagline → mascot → objects at 60ms intervals → button), idle motion continues after, and
+pointer-based parallax (device-tilt parallax was deliberately left out — it needs a permission
+prompt on iOS 13+, and the brief said only to use it "if permission isn't needed").
+
+**Home**: restyled to the reference's bold outlined/hard-shadow "folder card" language via new,
+**additive** tokens (`--home-bg`, `--home-surface`, `--home-ink`, `--home-shadow`) — every other
+screen's existing `--color-bg`/`--color-surface` (the softer "paper" card style) is untouched, so
+this is scoped to Home only, per the brief. All the real data wiring (streak, Daily Unwind
+progress, per-game best scores) carried over unchanged; only presentation changed. The reference
+mockup's search icon belongs to a *different* app entirely (a link-saving tool) — wiring it to
+nothing would be a dead button, so it now opens a real, working inline filter over the game grid
+instead of being decorative.
+
+**Two real bugs caught by actually running Lighthouse, not by eyeballing the mockup match:**
+
+1. The "NEW" badge (white text on `coral-500`) measured **3.41:1** contrast — a real WCAG AA
+   failure invisible without computing it (10px bold text doesn't qualify for the "large text" 3:1
+   exception). Switched to `coral-700` (6.46:1, checked before shipping, not just "a darker shade").
+2. Lighthouse's Total Blocking Time jumped to **2,530ms** (from Phase 7's 390ms) the first time this
+   was measured. Root cause, found via the trace's long-task list, not assumed: 12 floating objects
+   each ran a Framer Motion `repeat: Infinity` idle-bob loop, and a continuous Framer animation
+   re-runs a JS tick every frame for as long as it's mounted — a dozen of them simultaneously is
+   real, measurable main-thread cost, not a lab artifact (a real user sitting on Start before
+   tapping "Start Playing" pays this same cost). Fixed by moving every idle loop (12 objects + the
+   mascot) to plain CSS `@keyframes` (the browser's own animation engine, no per-frame JS), and by
+   coalescing the Loading screen's ~14 near-simultaneous progress-task completions into at most one
+   `setState` per animation frame instead of one each. Together: **1,040–1,120ms TBT, confirmed
+   stable across a clean re-run** (an intermediate 2,410ms reading turned out to be 16 leftover
+   `vite preview`/Lighthouse processes from earlier iterations competing for CPU — caught by
+   checking `tasklist` before trusting the number, not assumed to be the fix failing).
+
+**Final Lighthouse, clean run**: Accessibility 100, Best Practices 100, SEO 100, Performance 61
+(down from Phase 7's 77 — an honest, expected trade: Loading now does real asset/session work that
+didn't exist before, and Start runs a much richer entrance sequence than the old 2.2s timer-based
+splash it replaced; Speed Index specifically is dominated by that same deliberately-longer branded
+entrance, the same category of trade-off Phase 7's report already flagged for the original splash).
+
+**Verified live in a real browser** (Edge via Playwright), not just typechecked: Loading mid-progress,
+Start's full entrance, Home in light and dark mode (including a **live** in-app dark-mode toggle
+with no reload, confirming the CSS-cascade theme approach — not just a fresh-load check), reduced
+motion (real progress still shown on Loading; simple fades only on Start, confirmed objects do
+appear once entrance settles, an earlier "objects invisible" reading was a screenshot-timing
+artifact in the test script, not an app bug), a folder-card tap through to a real game (its Phase 7
+tutorial overlay still appears, confirming zero game-logic regression), and the new search filter
+actually filtering and its results actually navigating. Zero console errors throughout. 140/140
+existing tests still pass; lint and typecheck clean.
+
+**Scope notes, not hidden**: the horizontal lockup ships as two pre-baked raster variants rather
+than a single dynamically-recolored asset (see above — a genuine two-color-vs-one-color technical
+constraint, not a shortcut). `BrandLogo`'s `variant="full"` is currently an alias for `"horizontal"`
+— no third distinct lockup composition exists in the provided assets to justify a separate one.
+
+**Needed from you:** nothing blocking — the flow is live at https://unwind-puzzles.vercel.app/ once
+this deploys. Take a look at Loading → Start → Home against the original mockups and flag anything
+that should sit differently; the object positions/sizes are all percentage-based constants in
+`StartScreen.tsx`, easy to nudge.

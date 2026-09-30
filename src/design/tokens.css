@@ -105,6 +105,19 @@
   --color-chrome-bg: var(--navy-900);
   --color-chrome-text: #ffffff;
 
+  /* Loading screen progress track — sampled from brand/mockups/loading.png,
+     doesn't match any existing navy step closely enough to reuse one. */
+  --color-loading-track: #141a5c;
+
+  /* Home screen's "neo-brutalist" folder-card style (brand/refs/ref-home.png)
+     — scoped to Home only, additive tokens so every other screen's existing
+     --color-bg/--color-surface (soft "paper" cards) stay untouched. */
+  --home-bg: #fbf8f3;
+  --home-surface: #ffffff;
+  --home-ink: var(--navy-900);
+  --home-shadow: var(--navy-900);
+  --brand-logo-horizontal: url(/brand/logo-horizontal-onlight.webp);
+
   color-scheme: light;
 }
 
@@ -121,6 +134,12 @@
   --color-accent-soft: rgb(31 97 250 / 18%);
   --color-shadow: rgb(0 0 0 / 40%);
   --color-chrome-bg: var(--navy-950);
+
+  --home-bg: var(--navy-900);
+  --home-surface: #0e1452;
+  --home-ink: #ffffff;
+  --home-shadow: var(--navy-950);
+  --brand-logo-horizontal: url(/brand/logo-horizontal-dark.webp);
 
   color-scheme: dark;
 }
@@ -139,6 +158,12 @@
     --color-accent-soft: rgb(31 97 250 / 18%);
     --color-shadow: rgb(0 0 0 / 40%);
     --color-chrome-bg: var(--navy-950);
+
+    --home-bg: var(--navy-900);
+    --home-surface: #0e1452;
+    --home-ink: #ffffff;
+    --home-shadow: var(--navy-950);
+    --brand-logo-horizontal: url(/brand/logo-horizontal-dark.webp);
 
     color-scheme: dark;
   }

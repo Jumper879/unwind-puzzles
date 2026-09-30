@@ -90,6 +90,12 @@
   --color-accent-soft: var(--color-accent-soft);
   --color-chrome-bg: var(--color-chrome-bg);
   --color-chrome-text: var(--color-chrome-text);
+  --color-loading-track: var(--color-loading-track);
+
+  --color-home-bg: var(--home-bg);
+  --color-home-surface: var(--home-surface);
+  --color-home-ink: var(--home-ink);
+  --color-home-shadow: var(--home-shadow);
 
   --font-heading: var(--font-heading);
   --font-body: var(--font-body);
@@ -97,6 +103,40 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Start screen's idle float/bob loops (mascot + ~12 floating objects) run as
+   plain CSS animations, not Framer Motion `animate` loops — a continuous
+   `repeat: Infinity` Framer animation re-runs a JS tick every frame for as
+   long as it's mounted, and with a dozen of them running simultaneously
+   that showed up as real main-thread cost in a Lighthouse audit (Total
+   Blocking Time), not just a lab artifact. CSS keyframes on transform let
+   the browser's own animation engine handle it with no per-frame JS. */
+@keyframes unwind-float-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-7px) rotate(var(--float-rotate, 5deg));
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(7px) rotate(calc(-1 * var(--float-rotate, 5deg)));
+  }
+}
+
+.unwind-float {
+  animation: unwind-float-idle var(--float-duration, 3.5s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unwind-float {
+    animation: none;
+  }
 }
 
 html {

@@ -1,10 +1,11 @@
 import { Suspense, useEffect, useState, lazy } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { PlatformProvider } from './platform/PlatformProvider'
+import { PlatformProvider, usePlatform } from './platform/PlatformProvider'
 import { useBootstrapSession } from './platform/useBootstrapSession'
 import { initSyncQueue } from './lib/syncQueue'
-import { SplashScreen } from './routes/SplashScreen'
+import { LoadingScreen } from './routes/LoadingScreen'
+import { StartScreen } from './routes/StartScreen'
 import { Drawer } from './components/Drawer'
 import { PwaUpdateToast } from './components/PwaUpdateToast'
 import { Home } from './routes/Home'
@@ -35,6 +36,8 @@ const IconsPreview = lazy(() =>
   import('./routes/dev/IconsPreview').then((m) => ({ default: m.IconsPreview })),
 )
 
+type AppPhase = 'loading' | 'start' | 'ready'
+
 function SessionBootstrap() {
   useBootstrapSession()
   return null
@@ -48,24 +51,37 @@ function RouteFallback() {
   )
 }
 
-export default function App() {
+function AppShell() {
+  const platform = usePlatform()
   // /dev/* are developer-only tool pages (e.g. the icon comparison), not
-  // part of the player-facing experience — skip the splash gate for them.
+  // part of the player-facing experience — skip Loading/Start for them.
   const isDevRoute = window.location.pathname.startsWith('/dev/')
-  const [showSplash, setShowSplash] = useState(!isDevRoute)
+  const [phase, setPhase] = useState<AppPhase>(isDevRoute ? 'ready' : 'loading')
 
   useEffect(() => {
     initSyncQueue()
   }, [])
 
+  // Loading and Start are stateful phases, never routes — there's no
+  // history entry for either, so the platform back button (and the
+  // browser's own back gesture) can never land back on them once Home has
+  // mounted. Explicitly hidden here too, since a Telegram client could in
+  // principle show a stale BackButton state from a previous session.
+  useEffect(() => {
+    if (phase !== 'ready') platform.chrome.setBackButton(false)
+  }, [phase, platform])
+
   return (
-    <PlatformProvider>
+    <>
       <SessionBootstrap />
       <AnimatePresence>
-        {showSplash && <SplashScreen key="splash" onFinish={() => setShowSplash(false)} />}
+        {phase === 'loading' && (
+          <LoadingScreen key="loading" onFinish={() => setPhase('start')} />
+        )}
+        {phase === 'start' && <StartScreen key="start" onStart={() => setPhase('ready')} />}
       </AnimatePresence>
 
-      {!showSplash && (
+      {phase === 'ready' && (
         <BrowserRouter>
           <Drawer />
           <main className="flex min-h-screen flex-1 flex-col">
@@ -89,6 +105,14 @@ export default function App() {
           <PwaUpdateToast />
         </BrowserRouter>
       )}
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <PlatformProvider>
+      <AppShell />
     </PlatformProvider>
   )
 }
