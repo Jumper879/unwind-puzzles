@@ -2,14 +2,15 @@
 
 One Vite + React + TypeScript codebase shipping as a responsive web app, an installable PWA, and a Telegram Mini App, backed by Supabase. This plan covers architecture, folder structure, data model, and the 7 build phases from the brief.
 
-**Status: all 7 build phases from the brief are shipped, plus two post-launch UI passes** — Phase 8
-(new Loading/Start screens and a restyled Home, matching approved mockups) and Phase 9 (square
+**Status: all 7 build phases from the brief are shipped, plus three post-launch UI passes** — Phase
+8 (new Loading/Start screens and a restyled Home, matching approved mockups), Phase 9 (square
 `GameBox` cards, a new wordmark app icon, and a persistent Back/Home/Forward bar with a real X&O
-resume). See the Phase 9 and Phase 8 reports below. All 8 games are fully playable; Daily Unwind,
-streaks, achievements, XP, first-play tutorials and sound are real, local-first features, not
-stubs — see the Phase 7 report, plus the Phase 6 report for Spot the Difference/Missing Piece and
-the Phase 5 report for the Stockfish spike. Live at https://unwind-puzzles.vercel.app/ and
-github.com/Jumper879/unwind-puzzles (private).
+resume), and Phase 10 (a logo hero card replacing Home's headline, reworked `GameBox`es, and the
+real logo + real navigation in the drawer). See the Phase 10, 9 and 8 reports below. All 8 games
+are fully playable; Daily Unwind, streaks, achievements, XP, first-play tutorials and sound are
+real, local-first features, not stubs — see the Phase 7 report, plus the Phase 6 report for Spot
+the Difference/Missing Piece and the Phase 5 report for the Stockfish spike. Live at
+https://unwind-puzzles.vercel.app/ and github.com/Jumper879/unwind-puzzles (private).
 
 ---
 
@@ -529,3 +530,60 @@ Home button → Word Search → browser back → Back again), confirming the rou
 never returns to Loading/Start; the confirm-sheet and "keep playing"/"leave" branches on Sudoku; dark
 mode and 360×780; zero console errors throughout. 141/141 tests pass; lint and typecheck clean;
 production build succeeds.
+
+---
+
+## 18. Phase 10 report — homepage polish + real logo in the menu
+
+Home's headline and top-bar logo replaced by one logo hero card; `GameBox` reworked (shorter, tinted,
+bigger icon tiles, a progress bar, a real "Play" state); the drawer got the real horizontal logo,
+icon tiles, section labels, and a version footer. No game logic, scoring, database, auth,
+Loading/Start, bottom nav, or platform-adapter changes.
+
+**The animated i-dot needed a fourth asset extraction.** The hero card's logo is the same
+`logo-horizontal-dark.webp` from Phase 8 (already exactly "original colors on navy" — no new base
+asset needed), but "the dot does one gentle breath" independently means it can't just be baked into
+that flat two-color raster. Re-ran the connected-component flood-fill from Phase 9 against the
+*horizontal* lockup's source (`brand/logo-horizontal.png`) specifically to pull the dot out as its
+own transparent layer (`public/brand/logo-dot.webp`), positioned via its measured offset as a
+fraction of the logo's own box — verified by cropping the candidate component and looking at it
+before trusting it was really the dot, not assumed from size alone.
+
+**GameBox**: real `getPerGameProgress()` data drives a level/10 progress bar for the 5 level-based
+games; the 3 match/puzzle games (X&O, Sudoku, Chess) get a "Best N" pill instead, same data-shape
+gap flagged in Phase 9 — a raw best score has no natural ceiling, so they don't get a progress bar
+either, rather than faking one. `isNew` moved from a hardcoded `Set` in `Home.tsx` into
+`registry.ts` itself, as asked. New `GameLineIcon`s per the brief's descriptions (X&O shows both
+marks, Sudoku shows a digit, Fruit Match is a cherry, Crossword is two crossing tile-strips, Chess is
+a knight silhouette, Spot the Difference is two overlapping frames with a dot) — `/brand/game-icons/`
+is confirmed empty, so these SVGs are the real icons, not a placeholder standing in for artwork that
+exists.
+
+**Hero card background needed its own token.** The brief wants it always-dark (navy in light mode,
+`#0E1452` in dark mode) regardless of the page's own theme — different from `--home-surface`, which
+flips to white in light mode. Added `--hero-card-bg` rather than overloading an existing token whose
+other consumers (GameBox, BrutalCard) genuinely do need to flip white/dark with the page.
+
+**Real bug caught by `npm run build`, not `tsc --noEmit`.** Exposing `package.json`'s version for
+the drawer footer via `import pkg from './package.json'` typechecked fine under a plain `tsc
+--noEmit` pass but failed the full `tsc -b` project build — Node's `nodenext` module resolution (used
+by `vite.config.ts`'s own tsconfig) requires an explicit `with { type: 'json' }` import attribute
+that a looser single-file check doesn't enforce. Caught by actually running the full production
+build before calling this done, not by the lighter typecheck alone — the footer honestly shows
+`v0.0.0`, since that's what `package.json` currently says.
+
+**Greeting verified live, not just unit-tested.** `greetingForHour` has its own unit tests for the
+boundary hours, but the brief specifically asked to confirm it changes with mocked time in the
+running app — did that separately via `page.addInitScript` overriding `Date` in a real browser
+context, checked all 4 buckets including the one that wraps past midnight (2am → evening).
+
+**Drawer's "MORE" section scope**: the brief named exactly Leaderboard/Stats/Achievements/Settings;
+the existing drawer also had working links to Daily Unwind, My Records, How to Play, and About —
+kept all of them (the named 4 first, in order, then the rest), since removing working navigation
+wasn't asked for and would have been a real functionality loss.
+
+**Verified live in Edge via Playwright**: Home light/dark at 390×844 and 360×780, scrolled to the
+bottom (all 8 boxes clear of the bottom nav, NEW badges only on the 2 real new games), the open menu
+at both a tall and a short viewport (header fixed, footer always visible, body scrolls), a GameBox
+tap and a drawer item tap both landing on the right page, zero console errors. 144/144 tests pass
+(3 new, for the greeting boundaries); lint and typecheck clean; production build succeeds.

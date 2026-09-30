@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useUiStore } from '../state/useUiStore'
-import { BrandLogo } from '../components/BrandLogo'
 import { IconButton } from '../components/IconButton'
 import { BrutalCard } from '../components/BrutalCard'
 import { GameBox } from '../components/GameBox'
+import { LogoHeroCard } from '../components/LogoHeroCard'
 import { GAMES } from '../games/registry'
 import { getStreak } from '../lib/streak'
 import { getDailyPicks } from '../lib/daily'
@@ -13,7 +13,6 @@ import {
   getLocalStatsSummary,
   getPerGameProgress,
   type LocalBestRow,
-  type PerGameProgress,
 } from '../lib/localGameStore'
 import { todayDateString } from '../lib/date'
 
@@ -28,33 +27,22 @@ const GAME_COLORS: Record<string, string> = {
   sudoku: '#C6EF6B',
 }
 
-// The 2 most recently shipped games (Phase 6) — a real fact, not a fake badge.
-const NEW_GAME_IDS = new Set(['spot-the-difference', 'mosaic'])
+// The 5 games with a real 10-level campaign (see GAMES.md) — X&O, Sudoku
+// and Chess are match/puzzle-based with no "level" concept, so a raw best
+// score is all they have (no natural ceiling to show as a progress bar).
+const LEVEL_BASED_GAME_IDS = new Set([
+  'word-search',
+  'fruit-match',
+  'crossword',
+  'spot-the-difference',
+  'mosaic',
+])
+const LEVEL_COUNT = 10
 
-function bestScoreForGame(bests: LocalBestRow[], gameId: string): number | null {
+function bestScoreForGame(bests: LocalBestRow[], gameId: string): number | undefined {
   const rows = bests.filter((b) => b.gameId === gameId)
-  if (rows.length === 0) return null
+  if (rows.length === 0) return undefined
   return Math.max(...rows.map((b) => b.score))
-}
-
-/**
- * "Lv N / ★ N" for the 5 games with real level progress (Word Search,
- * Fruit Match, Crossword, Spot the Difference, Missing Piece); X&O, Sudoku
- * and Chess are match/puzzle-based with no "levels" (same finding as the
- * achievements work), so they fall back to their best score, or "New".
- */
-function computeBoxMeta(
-  gameId: string,
-  bests: LocalBestRow[],
-  perGame: Record<string, PerGameProgress>,
-): string[] {
-  const progress = perGame[gameId]
-  if (progress && progress.highestLevel > 0) {
-    return [`Lv ${progress.highestLevel}`, `★ ${progress.totalStars}`]
-  }
-  const best = bestScoreForGame(bests, gameId)
-  if (best !== null) return [`Best ${best}`]
-  return ['New']
 }
 
 function HamburgerIcon() {
@@ -101,6 +89,20 @@ function PlayIcon() {
   )
 }
 
+function DailyProgressDots({ done, total }: { done: number; total: number }) {
+  return (
+    <div className="mt-1 flex items-center gap-1" aria-hidden>
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className="h-1.5 flex-1 rounded-full"
+          style={{ background: i < done ? 'var(--mint-600)' : 'var(--color-surface-outline)' }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export function Home() {
   const openDrawer = useUiStore((s) => s.openDrawer)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -123,7 +125,7 @@ export function Home() {
       <div className="mx-auto w-full max-w-md px-5 pt-[calc(env(safe-area-inset-top,0px)+16px)]">
         <div className="flex items-center justify-between gap-2">
           <IconButton icon={<HamburgerIcon />} aria-label="Open menu" onClick={openDrawer} />
-          <BrandLogo variant="horizontal" tone="auto" className="h-7" />
+          <div className="flex-1" />
           <div className="flex gap-2">
             <Link to="/leaderboard">
               <IconButton icon={<TrophyIcon />} aria-label="Global leaderboard" />
@@ -156,13 +158,11 @@ export function Home() {
 
         {!searchOpen && (
           <>
-            <h1 className="mt-6 font-[var(--font-heading)] text-[36px] font-extrabold leading-[1.05] text-[var(--home-ink)]">
-              Pick a puzzle.
-              <br />
-              <span style={{ color: 'var(--blue-500)' }}>Unwind.</span>
-            </h1>
+            <div className="mt-3">
+              <LogoHeroCard />
+            </div>
 
-            <Link to="/daily" className="mt-6 block">
+            <Link to="/daily" className="mt-5 block">
               <BrutalCard className="flex items-center gap-3 px-4 py-3">
                 <CalendarIcon />
                 <div className="flex-1">
@@ -172,6 +172,7 @@ export function Home() {
                   <p className="text-xs font-bold opacity-60" style={{ color: 'var(--home-ink)' }}>
                     {dailyDone}/{dailyPicks.length} done
                   </p>
+                  <DailyProgressDots done={dailyDone} total={dailyPicks.length} />
                 </div>
                 <span
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border-[2.5px] border-[var(--home-ink)]"
@@ -185,13 +186,15 @@ export function Home() {
           </>
         )}
 
-        <div className="mb-3 mt-8 flex items-center justify-between">
+        <div className="mb-3 mt-5 flex items-center justify-between">
           <h2 className="font-[var(--font-heading)] text-[17px] font-bold text-[var(--home-ink)]">
             {query.trim() ? 'Results' : 'All Games'}
           </h2>
           {!query.trim() && (
             <span className="font-[var(--font-heading)] text-sm font-bold text-[var(--home-ink)]">
-              🔥 {streak.current} day{streak.current === 1 ? '' : 's'}
+              {streak.current > 0
+                ? `🔥 ${streak.current} day${streak.current === 1 ? '' : 's'}`
+                : '✨ Start a streak'}
             </span>
           )}
         </div>
@@ -202,17 +205,36 @@ export function Home() {
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {filteredGames.map((game) => (
-              <Link key={game.id} to={`/games/${game.id}`}>
-                <GameBox
-                  gameId={game.id}
-                  name={game.name}
-                  color={GAME_COLORS[game.id] ?? '#8EC5FF'}
-                  meta={computeBoxMeta(game.id, stats.bests, perGame)}
-                  isNew={NEW_GAME_IDS.has(game.id)}
-                />
-              </Link>
-            ))}
+            {filteredGames.map((game) => {
+              const progress = perGame[game.id]
+              const isLevelBased = LEVEL_BASED_GAME_IDS.has(game.id)
+              const played = isLevelBased
+                ? Boolean(progress && progress.highestLevel > 0)
+                : bestScoreForGame(stats.bests, game.id) !== undefined
+
+              return (
+                <Link key={game.id} to={`/games/${game.id}`}>
+                  <GameBox
+                    gameId={game.id}
+                    name={game.name}
+                    color={GAME_COLORS[game.id] ?? '#8EC5FF'}
+                    isNew={game.isNew}
+                    played={played}
+                    levelMeta={
+                      isLevelBased && progress && progress.highestLevel > 0
+                        ? { level: progress.highestLevel, stars: progress.totalStars }
+                        : undefined
+                    }
+                    bestScore={!isLevelBased ? bestScoreForGame(stats.bests, game.id) : undefined}
+                    progressFraction={
+                      isLevelBased && progress && progress.highestLevel > 0
+                        ? Math.min(1, progress.highestLevel / LEVEL_COUNT)
+                        : undefined
+                    }
+                  />
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>

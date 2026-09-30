@@ -117,6 +117,14 @@
   --home-ink: var(--navy-900);
   --home-shadow: var(--navy-900);
   --brand-logo-horizontal: url(/brand/logo-horizontal-onlight.webp);
+  /* The Home hero card is always dark (it carries the white/blue logo
+     lockup), regardless of the page's own light/dark theme — a separate
+     token from --home-surface, which flips to white in light mode. */
+  --hero-card-bg: var(--navy-900);
+  /* GameBox's per-game tinted background: the game color mixed into
+     --home-surface at this strength — slightly stronger in dark mode so
+     the tint still reads against the darker surface underneath it. */
+  --gamebox-tint: 12%;
 
   color-scheme: light;
 }
@@ -144,6 +152,8 @@
      a black outline here would be next to invisible. */
   --home-shadow: rgb(0 0 0 / 60%);
   --brand-logo-horizontal: url(/brand/logo-horizontal-dark.webp);
+  --hero-card-bg: #0e1452;
+  --gamebox-tint: 14%;
 
   color-scheme: dark;
 }
@@ -168,6 +178,8 @@
     --home-ink: #ffffff;
     --home-shadow: rgb(0 0 0 / 60%);
     --brand-logo-horizontal: url(/brand/logo-horizontal-dark.webp);
+    --hero-card-bg: #0e1452;
+    --gamebox-tint: 14%;
 
     color-scheme: dark;
   }

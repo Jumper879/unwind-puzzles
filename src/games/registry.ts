@@ -5,6 +5,8 @@ export interface GameMeta {
   accent: 'blue' | 'sky' | 'mint' | 'peach' | 'lavender' | 'butter' | 'coral' | 'navy'
   /** Which build phase (from PLAN.md) ships this game. */
   phase: number
+  /** Drives Home's pink "NEW" badge — a real fact (most recently shipped), not decoration. */
+  isNew?: boolean
 }
 
 /**
@@ -56,6 +58,7 @@ export const GAMES: GameMeta[] = [
     tagline: 'Procedural scenes',
     accent: 'lavender',
     phase: 6,
+    isNew: true,
   },
   {
     id: 'mosaic',
@@ -63,6 +66,7 @@ export const GAMES: GameMeta[] = [
     tagline: 'Find the right tile',
     accent: 'peach',
     phase: 6,
+    isNew: true,
   },
 ]
 
